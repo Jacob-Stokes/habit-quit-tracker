@@ -48,13 +48,16 @@ app.use(morgan('combined'))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
+// Trust proxy (nginx terminates HTTPS)
+app.set('trust proxy', 1)
+
 // Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-session-secret-change-this',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // nginx handles HTTPS, container receives HTTP
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
