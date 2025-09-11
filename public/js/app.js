@@ -933,7 +933,6 @@ class HabitTracker {
       <tr data-activity-id="${activity.id}">
         <td>
           <div class="table-activity-name">
-            ${activity.icon ? `<span>${activity.icon}</span>` : ''}
             ${activity.name}
             <span class="table-activity-type ${activity.type}">${activity.type}</span>
           </div>
@@ -944,7 +943,7 @@ class HabitTracker {
           <button class="table-action-btn view-btn" data-activity-id="${activity.id}" title="View Details">👁</button>
           <button class="table-action-btn edit-btn" data-activity-id="${activity.id}" title="Edit">✏️</button>
           ${activity.type === 'quit' 
-            ? `<button class="table-action-btn log-btn" data-activity-id="${activity.id}" title="Slipped Up">⚠️</button>`
+            ? `<button class="table-action-btn log-btn" data-activity-id="${activity.id}" title="Slipped Up">${activity.icon || '⚠️'}</button>`
             : `<button class="table-action-btn log-btn" data-activity-id="${activity.id}" title="Log Activity">✅</button>`
           }
         </td>
@@ -1407,7 +1406,6 @@ class HabitTracker {
         <div class="activity-header">
           <div class="activity-info">
             <div class="activity-name">
-              ${activity.icon ? `<span>${activity.icon}</span>` : ''}
               ${activity.name}
               <span class="activity-type ${activity.type}">${activity.type}</span>
             </div>
@@ -1425,7 +1423,7 @@ class HabitTracker {
           </div>
         </div>
         
-        ${activity.type === 'quit' ? this.renderQuitDisplay(timeData, activity.color, activity.id) : this.renderHabitDisplay(stats)}
+        ${activity.type === 'quit' ? this.renderQuitDisplay(timeData, activity.color, activity.id, activity.icon) : this.renderHabitDisplay(stats)}
 
         ${activity.type === 'habit' ? `
           <div class="habit-actions">
@@ -1535,8 +1533,9 @@ class HabitTracker {
     }
   }
 
-  renderQuitDisplay(timeData, color, activityId) {
+  renderQuitDisplay(timeData, color, activityId, icon) {
     const progressColor = color || '#ef4444'
+    const buttonIcon = icon || '⚠️'
     
     return `
       <div class="quit-display-modern">
@@ -1546,7 +1545,7 @@ class HabitTracker {
             <div class="time-display-large">${timeData.timeString}</div>
             <div class="slipped-up-container">
               <button class="btn slipped-up-btn" data-activity-id="${activityId}">
-                ⚠️ Slipped up
+                ${buttonIcon} Slipped up
               </button>
             </div>
           </div>

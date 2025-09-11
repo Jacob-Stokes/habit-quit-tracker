@@ -900,7 +900,12 @@ body {
     }
 
     .main-content {
-        padding: 16px;
+        padding: 12px;
+    }
+    
+    /* Tighter grid spacing on mobile */
+    .activities-grid {
+        gap: 12px;
     }
 
     .today-summary {
@@ -912,22 +917,118 @@ body {
     }
 
     .activity-card {
-        padding: 16px;
+        padding: 12px 20px;
+        min-height: 180px;
+    }
+    
+    /* More compact mobile card elements */
+    .activity-header {
+        margin-bottom: 0;
+    }
+    
+    .activity-name {
+        font-size: 1.1rem;
+        margin-bottom: 2px;
+    }
+    
+    .activity-type {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+    
+    /* Compact quit display for mobile */
+    .quit-display-modern {
+        padding: 12px 0;
+    }
+    
+    .quit-content {
+        gap: 12px;
+    }
+    
+    .time-display-large {
+        font-size: 20px;
+        margin-bottom: 8px;
+        line-height: 1.1;
+    }
+    
+    .abstinence-label {
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    
+    .slipped-up-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+    
+    /* Progress circles on mobile */
+    .progress-circle svg {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .progress-content {
+        font-size: 0.85rem;
+    }
+    
+    .progress-percent {
+        font-size: 0.9rem;
+    }
+    
+    .progress-goal {
+        font-size: 0.7rem;
+    }
+    
+    /* Compact habit display */
+    .habit-display {
+        margin: 12px 0;
+    }
+    
+    .habit-stats .stat-item {
+        margin-bottom: 6px;
+        font-size: 13px;
+    }
+    
+    .habit-actions {
+        padding: 12px 0 0;
+        margin-top: 12px;
+    }
+    
+    .habit-actions .btn {
+        padding: 8px 16px;
+        font-size: 14px;
     }
     
     .fullscreen-calendar-view {
         margin: 0;
-        padding: 16px;
+        padding: 10px;
+    }
+    
+    /* Reduce all other 20px padding to 10px on mobile */
+    .calendar-view {
+        padding: 10px;
+    }
+    
+    .fullscreen-calendar-view {
+        padding: 10px;
+    }
+    
+    .quit-display-modern {
+        padding: 10px 0;
+    }
+    
+    .habit-display {
+        margin: 10px 0;
     }
 
     .modal-content {
-        margin: 20px;
-        max-height: calc(100vh - 40px);
+        margin: 10px;
+        max-height: calc(100vh - 20px);
     }
 
     .message-container {
-        left: 20px;
-        right: 20px;
+        left: 10px;
+        right: 10px;
     }
 }
 
@@ -1220,7 +1321,7 @@ body {
 
 /* Modern Quit Card Styles */
 .quit-display-modern {
-    padding: 20px 0;
+    padding: 0 0 10px 0;
 }
 
 .quit-content {
