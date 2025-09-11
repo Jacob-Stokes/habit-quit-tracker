@@ -45,6 +45,56 @@ habit-quit-tracker/
 
 5. Open your browser and go to `http://localhost:3000`
 
+## Docker Deployment
+
+### Quick Start with Docker Compose
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Jacob-Stokes/habit-quit-tracker.git
+   cd habit-quit-tracker
+   ```
+
+2. Start the application:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. Access the app at `http://localhost:8882`
+
+### Docker Compose Configuration
+
+The app runs on **port 8882** (mapped from container port 3000) with:
+- **Persistent data**: Database stored in `./data` directory
+- **Persistent logs**: Application logs in `./logs` directory  
+- **Health checks**: Automatic container health monitoring
+- **Auto-restart**: Container restarts unless manually stopped
+
+### Docker Commands
+
+```bash
+# Start the application
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the application
+docker-compose down
+
+# Rebuild and restart
+docker-compose up --build -d
+
+# View container status
+docker-compose ps
+```
+
+### Data Persistence
+
+- **Database**: `./data/database.sqlite` (created automatically)
+- **Logs**: `./logs/` directory
+- **Backups**: Simply backup the `./data` directory
+
 ## Quick Start Guide
 
 1. **Create an account**: Register a new user account on the login page
