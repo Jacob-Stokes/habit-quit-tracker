@@ -78,6 +78,21 @@ const createTables = () => {
       }
     })
 
+    // Sessions table for persistent session storage
+    db.run(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid TEXT PRIMARY KEY,
+        sess TEXT NOT NULL,
+        expire INTEGER NOT NULL
+      )
+    `, (err) => {
+      if (err) {
+        console.error('❌ Error creating sessions table:', err.message)
+      } else {
+        console.log('✅ Sessions table ready')
+      }
+    })
+
     // Create indexes for better performance
     db.run(`
       CREATE INDEX IF NOT EXISTS idx_events_activity 
@@ -98,6 +113,17 @@ const createTables = () => {
         console.error('❌ Error creating activities index:', err.message)
       } else {
         console.log('✅ Activities index ready')
+      }
+    })
+
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_sessions_expire
+      ON sessions(expire)
+    `, (err) => {
+      if (err) {
+        console.error('❌ Error creating sessions index:', err.message)
+      } else {
+        console.log('✅ Sessions index ready')
       }
     })
   })

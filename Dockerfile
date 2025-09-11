@@ -13,8 +13,8 @@ RUN npm ci --only=production
 # Copy application code
 COPY . .
 
-# Create directories for database and logs
-RUN mkdir -p database logs
+# Create directories for database, logs, and sessions
+RUN mkdir -p database logs database/sessions
 
 # Set environment variables
 ENV NODE_ENV=production
