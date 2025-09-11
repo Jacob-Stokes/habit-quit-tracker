@@ -1,6 +1,6 @@
-const bcrypt = require('bcryptjs')
-const { v4: uuidv4 } = require('uuid')
-const database = require('../config/database')
+import bcrypt from 'bcryptjs'
+import { v4 as uuidv4 } from 'uuid'
+import database from '../config/database.js'
 
 class User {
   constructor(data) {
@@ -110,4 +110,4 @@ class User {
   }
 }
 
-module.exports = User
+export default User

@@ -1,7 +1,13 @@
-const sqlite3 = require('sqlite3').verbose()
-const path = require('path')
-const fs = require('fs')
+import sqlite3 from 'sqlite3'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
 
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const sqlite = sqlite3.verbose()
 const dbPath = path.join(__dirname, 'habits.db')
 
 // Ensure database directory exists
@@ -9,7 +15,7 @@ if (!fs.existsSync(__dirname)) {
   fs.mkdirSync(__dirname, { recursive: true })
 }
 
-const db = new sqlite3.Database(dbPath, (err) => {
+const db = new sqlite.Database(dbPath, (err) => {
   if (err) {
     console.error('Error opening database:', err.message)
     process.exit(1)
@@ -47,6 +53,8 @@ const createTables = () => {
         icon TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         archived BOOLEAN DEFAULT 0,
+        selected_goal_name TEXT,
+        selected_goal_hours INTEGER,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `, (err) => {

@@ -1,17 +1,24 @@
-const express = require('express')
-const session = require('express-session')
-const cors = require('cors')
-const helmet = require('helmet')
-const morgan = require('morgan')
-const path = require('path')
-require('dotenv').config()
+import express from 'express'
+import session from 'express-session'
+import cors from 'cors'
+import helmet from 'helmet'
+import morgan from 'morgan'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import dotenv from 'dotenv'
 
-const database = require('./config/database')
+dotenv.config()
+
+import database from './config/database.js'
 
 // Import routes
-const authRoutes = require('./routes/auth')
-const activityRoutes = require('./routes/activities')
-const eventRoutes = require('./routes/events')
+import authRoutes from './routes/auth.js'
+import activityRoutes from './routes/activities.js'
+import eventRoutes from './routes/events.js'
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -66,7 +73,7 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    version: require('../package.json').version
+    version: '1.0.0'
   })
 })
 
@@ -124,4 +131,4 @@ process.on('SIGTERM', () => {
 
 startServer()
 
-module.exports = app
+export default app

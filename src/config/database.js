@@ -1,6 +1,12 @@
-const sqlite3 = require('sqlite3').verbose()
-const path = require('path')
+import sqlite3 from 'sqlite3'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const sqlite = sqlite3.verbose()
 const dbPath = path.join(__dirname, '../../database/habits.db')
 
 class Database {
@@ -10,7 +16,7 @@ class Database {
 
   connect() {
     return new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(dbPath, (err) => {
+      this.db = new sqlite.Database(dbPath, (err) => {
         if (err) {
           console.error('Database connection error:', err.message)
           reject(err)
@@ -80,4 +86,4 @@ class Database {
   }
 }
 
-module.exports = new Database()
+export default new Database()

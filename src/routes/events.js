@@ -1,7 +1,7 @@
-const express = require('express')
-const Event = require('../models/Event')
-const Activity = require('../models/Activity')
-const { requireAuth } = require('../middleware/auth')
+import express from 'express'
+import Event from '../models/Event.js'
+import Activity from '../models/Activity.js'
+import { requireAuth } from '../middleware/auth.js'
 
 const router = express.Router()
 
@@ -291,4 +291,4 @@ router.get('/activity/:activityId/range', async (req, res) => {
   }
 })
 
-module.exports = router
+export default router

@@ -31,7 +31,7 @@ const requireGuest = (req, res, next) => {
   next()
 }
 
-module.exports = {
+export {
   requireAuth,
   optionalAuth,
   requireGuest

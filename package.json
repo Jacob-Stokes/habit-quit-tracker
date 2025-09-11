@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A simple self-hosted Progressive Web App for tracking habits and quits",
   "main": "src/app.js",
+  "type": "module",
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
@@ -36,7 +37,7 @@
     "helmet": "^8.1.0",
     "morgan": "^1.10.1",
     "sqlite3": "^5.1.7",
-    "uuid": "^13.0.0"
+    "uuid": "^11.0.3"
   },
   "devDependencies": {
     "eslint": "^8.57.1",

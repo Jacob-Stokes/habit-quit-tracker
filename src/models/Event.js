@@ -1,5 +1,5 @@
-const { v4: uuidv4 } = require('uuid')
-const database = require('../config/database')
+import { v4 as uuidv4 } from 'uuid'
+import database from '../config/database.js'
 
 class Event {
   constructor(data) {
@@ -200,4 +200,4 @@ class Event {
   }
 }
 
-module.exports = Event
+export default Event

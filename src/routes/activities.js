@@ -1,7 +1,7 @@
-const express = require('express')
-const Activity = require('../models/Activity')
-const database = require('../config/database')
-const { requireAuth } = require('../middleware/auth')
+import express from 'express'
+import Activity from '../models/Activity.js'
+import database from '../config/database.js'
+import { requireAuth } from '../middleware/auth.js'
 
 const router = express.Router()
 
@@ -308,4 +308,4 @@ router.patch('/:id/goal', async (req, res) => {
   }
 })
 
-module.exports = router
+export default router
