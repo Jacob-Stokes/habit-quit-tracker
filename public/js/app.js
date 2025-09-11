@@ -98,17 +98,18 @@ class HabitTracker {
     // Update all quit activities' time displays
     this.activities.forEach(activity => {
       if (activity.type === 'quit') {
+        // Use selected goal if available, otherwise calculate default
+        let timeData
+        if (activity.selectedGoal) {
+          timeData = this.calculateTimeDisplayWithGoal(activity, activity.lastEvent, activity.selectedGoal.hours, activity.selectedGoal.name)
+        } else {
+          timeData = this.calculateTimeDisplay(activity, activity.lastEvent)
+        }
+        
+        // Update card view elements (activity cards)
         const card = document.querySelector(`[data-activity-id="${activity.id}"]`)?.closest('.activity-card')
         if (card) {
-          // Use selected goal if available, otherwise calculate default
-          let timeData
-          if (activity.selectedGoal) {
-            timeData = this.calculateTimeDisplayWithGoal(activity, activity.lastEvent, activity.selectedGoal.hours, activity.selectedGoal.name)
-          } else {
-            timeData = this.calculateTimeDisplay(activity, activity.lastEvent)
-          }
-          
-          const timeDisplay = card.querySelector('.time-display')
+          const timeDisplay = card.querySelector('.time-display, .time-display-large')
           const progressPercent = card.querySelector('.progress-percent')
           const progressGoal = card.querySelector('.progress-goal')
           const progressCircle = card.querySelector('circle[stroke-dasharray]')
@@ -117,8 +118,37 @@ class HabitTracker {
           if (progressPercent) progressPercent.textContent = `${timeData.progressPercent.toFixed(1)}%`
           if (progressGoal) progressGoal.textContent = timeData.currentGoal
           if (progressCircle) {
-            const circumference = 2 * Math.PI * 50
+            const circumference = 2 * Math.PI * (progressCircle.getAttribute('r') || 40)
             progressCircle.style.strokeDashoffset = circumference * (1 - timeData.progressPercent / 100)
+          }
+        }
+        
+        // Update calendar view elements (full-screen calendar view)
+        if (this.currentCalendarActivity === activity.id) {
+          const calendarTimeDisplay = document.querySelector('.fullscreen-calendar-view .time-display')
+          const calendarProgressPercent = document.querySelector('.fullscreen-calendar-view .progress-percent')
+          const calendarProgressGoal = document.querySelector('.fullscreen-calendar-view .progress-goal')
+          const calendarProgressCircle = document.querySelector('.fullscreen-calendar-view circle[stroke-dasharray]')
+          
+          if (calendarTimeDisplay) calendarTimeDisplay.textContent = timeData.timeString
+          if (calendarProgressPercent) calendarProgressPercent.textContent = `${timeData.progressPercent.toFixed(1)}%`
+          if (calendarProgressGoal) calendarProgressGoal.textContent = timeData.currentGoal
+          if (calendarProgressCircle) {
+            const circumference = 2 * Math.PI * (calendarProgressCircle.getAttribute('r') || 50)
+            calendarProgressCircle.style.strokeDashoffset = circumference * (1 - timeData.progressPercent / 100)
+          }
+        }
+        
+        // Update table view elements if in table view
+        const tableRow = document.querySelector(`tr[data-activity-id="${activity.id}"]`)
+        if (tableRow) {
+          const tableTimeDisplay = tableRow.querySelector('.table-time')
+          const tableProgressDisplay = tableRow.querySelector('.table-progress')
+          
+          if (tableTimeDisplay) tableTimeDisplay.textContent = timeData.timeString
+          if (tableProgressDisplay) {
+            const progressDisplay = `${timeData.progressPercent.toFixed(1)}% of ${timeData.currentGoal}`
+            tableProgressDisplay.textContent = progressDisplay
           }
         }
       }
@@ -355,6 +385,9 @@ class HabitTracker {
     const activity = this.activities.find(a => a.id === activityId)
     if (!activity) return
 
+    // Add calendar view class to body for mobile scroll handling
+    document.body.classList.add('calendar-view-active')
+
     // Get events for the past 3 months to show in calendar
     const currentDate = new Date()
     const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1)
@@ -444,6 +477,9 @@ class HabitTracker {
   returnToTabView() {
     const tabContent = document.querySelector('.tab-content')
     if (!tabContent || !this.originalTabContent) return
+
+    // Remove calendar view class from body
+    document.body.classList.remove('calendar-view-active')
 
     // Restore the original tab content
     tabContent.innerHTML = this.originalTabContent
