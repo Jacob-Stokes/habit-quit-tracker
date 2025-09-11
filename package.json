@@ -9,7 +9,7 @@
     "dev": "nodemon src/app.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "db:setup": "node database/setup.js",
+    "db:setup": "node scripts/db-setup.js",
     "db:migrate": "node database/migrate.js",
     "db:seed": "node database/seed.js",
     "lint": "eslint src/",
