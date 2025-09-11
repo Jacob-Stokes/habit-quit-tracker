@@ -23,13 +23,8 @@ ENV PORT=3000
 # Expose port
 EXPOSE 3000
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
-
-# Change ownership of app directory
-RUN chown -R nodejs:nodejs /app
-USER nodejs
+# Run as root to avoid permission issues with bind mounts
+# In production, you'd want proper user management
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
