@@ -14,7 +14,7 @@ services:
       - DATABASE_PATH=/app/database/database.sqlite
     volumes:
       # Persist database data
-      - ./data:/app/database
+      - ./database:/app/database
       # Persist logs
       - ./logs:/app/logs
     healthcheck:
