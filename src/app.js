@@ -6,7 +6,7 @@ import morgan from 'morgan'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
-import FileStore from 'session-file-store'
+// import FileStore from 'session-file-store'
 
 dotenv.config()
 
@@ -52,16 +52,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 // Trust proxy (nginx terminates HTTPS)
 app.set('trust proxy', 1)
 
-// Initialize file-based session store
-const FileStoreSession = FileStore(session)
-
-// Session configuration with persistent file storage
+// Session configuration (temporarily using memory store)
 app.use(session({
-  store: new FileStoreSession({
-    path: path.join(__dirname, '../database/sessions'),
-    retries: 0,
-    ttl: 86400 // 24 hours in seconds
-  }),
   secret: process.env.SESSION_SECRET || 'your-session-secret-change-this',
   resave: false,
   saveUninitialized: false,
