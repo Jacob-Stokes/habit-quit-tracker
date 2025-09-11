@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="description" content="Track your habits and quits with this simple self-hosted app">
+    
+    <!-- PWA meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Habit Tracker">
+    <link rel="apple-touch-icon" href="/images/icon-192.png">
+</head>
+<body>
+    <div id="app">
+        <!-- Loading state -->
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading...</p>
+        </div>
+
+        <!-- Authentication forms -->
+        <div id="auth-container" class="auth-container" style="display: none;">
+            <div class="auth-card">
+                <h1>Habit Tracker</h1>
+                <p class="subtitle">Track your habits and quits</p>
+                
+                <!-- Login Form -->
+                <form id="login-form" class="auth-form">
+                    <h2>Sign In</h2>
+                    <div class="input-group">
+                        <label for="login-username">Username</label>
+                        <input type="text" id="login-username" name="username" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Sign In</button>
+                    <p class="auth-switch">
+                        Don't have an account? 
+                        <a href="#" id="show-register">Create one</a>
+                    </p>
+                </form>
+
+                <!-- Register Form -->
+                <form id="register-form" class="auth-form" style="display: none;">
+                    <h2>Create Account</h2>
+                    <div class="input-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" name="username" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" name="password" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="register-password-confirm">Confirm Password</label>
+                        <input type="password" id="register-password-confirm" name="password-confirm" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Account</button>
+                    <p class="auth-switch">
+                        Already have an account? 
+                        <a href="#" id="show-login">Sign in</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main app -->
+        <div id="main-app" class="main-app" style="display: none;">
+            <!-- Header with Tabs -->
+            <header class="app-header">
+                <div class="header-content">
+                    <h1>Habit Tracker</h1>
+                    <div class="header-menu">
+                        <button class="header-menu-trigger" id="header-menu-btn">⋯</button>
+                        <div class="header-dropdown" id="header-dropdown" style="display: none;">
+                            <button class="header-menu-item" id="add-activity-btn">
+                                ➕ Add Activity
+                            </button>
+                            <button class="header-menu-item" id="logout-btn">
+                                🚪 Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Activity Tabs in Header -->
+                <div class="header-tabs">
+                    <div class="activity-tabs">
+                        <button class="tab-button active" data-tab="habits">
+                            <span class="tab-icon">✅</span>
+                            Habits
+                            <span class="tab-count" id="habits-count">0</span>
+                        </button>
+                        <button class="tab-button" data-tab="quits">
+                            <span class="tab-icon">🚫</span>
+                            Quits
+                            <span class="tab-count" id="quits-count">0</span>
+                        </button>
+                        <button class="tab-button" data-tab="logs">
+                            <span class="tab-icon">📋</span>
+                            Logs
+                            <span class="tab-count" id="logs-count">0</span>
+                        </button>
+                    </div>
+                    
+                    <!-- View Toggle Buttons -->
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" data-view="cards" title="Card View">
+                            <span class="view-icon">⋯</span>
+                        </button>
+                        <button class="view-toggle-btn" data-view="table" title="Table View">
+                            <span class="view-icon">≡</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main content -->
+            <main class="main-content">
+                <!-- Activities Grid -->
+                <section class="activities-section">
+                    
+                    <!-- Tab Content -->
+                    <div class="tab-content">
+                        <div id="habits-tab" class="tab-pane active">
+                            <div id="habits-grid" class="activities-grid">
+                                <!-- Habit activities will be loaded here -->
+                            </div>
+                            <div id="habits-table" class="activities-table" style="display: none;">
+                                <!-- Habit activities table will be loaded here -->
+                            </div>
+                            <div id="no-habits" class="no-activities" style="display: none;">
+                                <p>No habits yet. Create your first habit!</p>
+                                <button class="btn btn-primary add-habit-btn">+ Add Habit</button>
+                            </div>
+                        </div>
+                        
+                        <div id="quits-tab" class="tab-pane">
+                            <div id="quits-grid" class="activities-grid">
+                                <!-- Quit activities will be loaded here -->
+                            </div>
+                            <div id="quits-table" class="activities-table" style="display: none;">
+                                <!-- Quit activities table will be loaded here -->
+                            </div>
+                            <div id="no-quits" class="no-activities" style="display: none;">
+                                <p>No quits yet. Create your first quit!</p>
+                                <button class="btn btn-primary add-quit-btn">+ Add Quit</button>
+                            </div>
+                        </div>
+                        
+                        <div id="logs-tab" class="tab-pane">
+                            <div class="logs-content">
+                                <h3>Today's Activity</h3>
+                                <div id="today-events" class="today-events">
+                                    <!-- Today's events will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- Add Activity Modal -->
+        <div id="activity-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-title">Add Activity</h2>
+                    <button id="close-modal" class="close-btn">&times;</button>
+                </div>
+                <form id="activity-form" class="activity-form">
+                    <div class="input-group">
+                        <label for="activity-name">Name</label>
+                        <input type="text" id="activity-name" name="name" required placeholder="e.g., Drink Water, Exercise">
+                    </div>
+                    <div class="input-group">
+                        <label for="activity-type">Type</label>
+                        <select id="activity-type" name="type" required>
+                            <option value="">Select type...</option>
+                            <option value="habit">Habit (something you want to do)</option>
+                            <option value="quit">Quit (something you want to stop)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="activity-icon">Icon (optional)</label>
+                        <input type="text" id="activity-icon" name="icon" placeholder="e.g., 💧, 🏃, 🚭">
+                    </div>
+                    <div class="input-group">
+                        <label for="activity-color">Color</label>
+                        <input type="color" id="activity-color" name="color" value="#6366f1">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" id="cancel-modal" class="btn btn-secondary">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Activity</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Error/Success Messages -->
+        <div id="message-container" class="message-container"></div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
