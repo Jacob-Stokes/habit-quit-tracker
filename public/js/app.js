@@ -218,8 +218,17 @@ class HabitTracker {
     // View toggle switching
     document.querySelectorAll('.view-toggle-btn').forEach(button => {
       button.addEventListener('click', (e) => {
-        const targetView = e.currentTarget.dataset.view
-        this.switchView(targetView)
+        // Check if mobile viewport
+        const isMobile = window.innerWidth <= 768
+        
+        if (isMobile) {
+          // On mobile, cycle through views
+          this.cycleView()
+        } else {
+          // On desktop, switch to specific view
+          const targetView = e.currentTarget.dataset.view
+          this.switchView(targetView)
+        }
       })
     })
 
@@ -1287,6 +1296,25 @@ class HabitTracker {
     const dropdown = document.getElementById(`goal-dropdown-${activityId}`)
     if (dropdown) {
       dropdown.style.display = 'none'
+    }
+  }
+
+  cycleView() {
+    const views = ['cards', 'table']
+    const currentIndex = views.indexOf(this.currentView)
+    const nextIndex = (currentIndex + 1) % views.length
+    const nextView = views[nextIndex]
+    
+    this.switchView(nextView)
+    
+    // Update button icon based on current view
+    const button = document.querySelector('.view-toggle-btn')
+    if (button) {
+      const icons = {
+        'cards': '⊞',
+        'table': '☰'
+      }
+      button.innerHTML = icons[nextView] || '⊞'
     }
   }
 
