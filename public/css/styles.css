@@ -14,8 +14,21 @@ body {
     overflow: hidden;
 }
 
-/* Allow scrolling on mobile for full-screen calendar view */
+/* Mobile layout fixes */
 @media (max-width: 768px) {
+    body {
+        overflow: auto;
+        height: auto;
+        min-height: 100vh;
+    }
+    
+    .main-app {
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
+    }
+    
+    /* Allow scrolling on mobile for full-screen calendar view */
     body.calendar-view-active {
         overflow: auto;
         height: auto;
@@ -714,6 +727,17 @@ body {
     font-weight: 500;
 }
 
+.goal-option.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.goal-option.disabled .goal-name,
+.goal-option.disabled .goal-progress {
+    color: #9ca3af;
+}
+
 .goal-check {
     color: #22c55e;
     font-weight: 700;
@@ -1124,7 +1148,7 @@ body {
 
 .abstinence-label {
     color: #6b7280;
-    font-size: 14px;
+    font-size: 12px;
     margin-bottom: 4px;
 }
 
@@ -1357,13 +1381,13 @@ body {
 
 .abstinence-label {
     color: #6b7280;
-    font-size: 14px;
+    font-size: 12px;
     margin-bottom: 8px;
     font-weight: 500;
 }
 
 .time-display-large {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 700;
     color: #374151;
     margin-bottom: 16px;

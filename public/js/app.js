@@ -1250,12 +1250,7 @@ class HabitTracker {
 
     // Goal option click handlers
     container.querySelectorAll('.goal-option').forEach(option => {
-      option.addEventListener('click', () => {
-        const goal = option.dataset.goal
-        const hours = parseInt(option.dataset.hours)
-        const activityId = option.closest('.progress-circle-container').dataset.activityId
-        this.selectGoal(activityId, goal, hours)
-      })
+      option.addEventListener('click', this.handleGoalOptionClick.bind(this))
     })
 
     // Close dropdown button listeners
@@ -1297,6 +1292,39 @@ class HabitTracker {
     if (dropdown) {
       dropdown.style.display = 'none'
     }
+  }
+
+  showGoalSelection(activityId) {
+    this.toggleGoalDropdown(activityId)
+    
+    // Add goal option listeners for regular cards (similar to calendar)
+    const dropdown = document.getElementById(`goal-dropdown-${activityId}`)
+    if (dropdown) {
+      // Goal option click handlers  
+      dropdown.querySelectorAll('.goal-option').forEach(option => {
+        // Remove existing listeners to avoid duplicates
+        option.removeEventListener('click', this.handleGoalOptionClick)
+        
+        // Add new listener
+        option.addEventListener('click', this.handleGoalOptionClick.bind(this))
+      })
+    }
+  }
+
+  handleGoalOptionClick(e) {
+    const option = e.currentTarget
+    
+    // Don't allow selection of completed/disabled goals
+    if (option.classList.contains('disabled')) {
+      return
+    }
+    
+    const goal = option.dataset.goal
+    const hours = parseInt(option.dataset.hours)
+    const activityId = option.closest('.progress-circle-container').dataset.activityId || 
+                      option.closest('[data-activity-id]').dataset.activityId
+    
+    this.selectGoal(activityId, goal, hours)
   }
 
   cycleView() {
@@ -1378,7 +1406,7 @@ class HabitTracker {
       // Recalculate time data with new goal
       const timeData = this.calculateTimeDisplayWithGoal(activity, activity.lastEvent, goalHours, goalName)
       
-      // Update the display
+      // Update the display in card view
       const card = document.querySelector(`[data-activity-id="${activityId}"]`).closest('.activity-card')
       if (card) {
         const progressPercent = card.querySelector('.progress-percent')
@@ -1393,10 +1421,23 @@ class HabitTracker {
         }
       }
 
-      // Hide the dropdown
+      // Update calendar view if it's currently showing this activity
+      if (this.currentCalendarActivity === activityId) {
+        const calendarProgressPercent = document.querySelector('.fullscreen-calendar-view .progress-percent')
+        const calendarProgressGoal = document.querySelector('.fullscreen-calendar-view .progress-goal')
+        const calendarProgressCircle = document.querySelector('.fullscreen-calendar-view circle[stroke-dasharray]')
+        
+        if (calendarProgressPercent) calendarProgressPercent.textContent = `${timeData.progressPercent.toFixed(1)}%`
+        if (calendarProgressGoal) calendarProgressGoal.textContent = timeData.currentGoal
+        if (calendarProgressCircle) {
+          const circumference = 2 * Math.PI * (calendarProgressCircle.getAttribute('r') || 50)
+          calendarProgressCircle.style.strokeDashoffset = circumference * (1 - timeData.progressPercent / 100)
+        }
+      }
+
+      // Hide both regular and calendar dropdowns
       this.hideGoalDropdown(activityId)
-      
-      this.showMessage('Goal updated successfully!', 'success')
+      this.hideCalendarGoalDropdown(activityId)
     } catch (error) {
       console.error('Error updating goal:', error)
       console.error('Error details:', error.message, error.stack)
@@ -1407,13 +1448,54 @@ class HabitTracker {
   calculateTimeDisplayWithGoal(activity, lastEvent, goalHours, goalName) {
     const baseTimeData = this.calculateTimeDisplay(activity, lastEvent)
     
-    // Override with selected goal
-    const progressPercent = Math.min((baseTimeData.totalHours / goalHours) * 100, 100)
+    // Define milestone goals (in hours) - same as in renderGoalOptions
+    const goals = [
+      { name: '24 Hours', hours: 24 },
+      { name: '3 Days', hours: 72 },
+      { name: '1 Week', hours: 168 },
+      { name: '10 Days', hours: 240 },
+      { name: '2 Weeks', hours: 336 },
+      { name: '1 Month', hours: 720 },
+      { name: '3 Months', hours: 2160 },
+      { name: '6 Months', hours: 4320 },
+      { name: '1 Year', hours: 8760 },
+      { name: '5 Years', hours: 43800 }
+    ]
+    
+    let currentGoal = goalName
+    let currentGoalHours = goalHours
+    
+    // Check if current goal is reached and auto-progress to next goal
+    if (baseTimeData.totalHours >= goalHours) {
+      // Find current goal index
+      const currentGoalIndex = goals.findIndex(g => g.name === goalName && g.hours === goalHours)
+      
+      // If we found the current goal and there's a next goal, auto-progress
+      if (currentGoalIndex !== -1 && currentGoalIndex < goals.length - 1) {
+        const nextGoal = goals[currentGoalIndex + 1]
+        
+        // Only auto-progress if we haven't reached the next goal yet
+        if (baseTimeData.totalHours < nextGoal.hours) {
+          currentGoal = nextGoal.name
+          currentGoalHours = nextGoal.hours
+          
+          // Update the activity's selected goal in memory and database
+          activity.selectedGoal = { name: nextGoal.name, hours: nextGoal.hours }
+          
+          // Update in database asynchronously (don't wait for it)
+          api.updateActivityGoal(activity.id, nextGoal.name, nextGoal.hours).catch(error => {
+            console.error('Error auto-updating goal:', error)
+          })
+        }
+      }
+    }
+    
+    const progressPercent = Math.min((baseTimeData.totalHours / currentGoalHours) * 100, 100)
     
     return {
       ...baseTimeData,
       progressPercent,
-      currentGoal: goalName
+      currentGoal
     }
   }
 
@@ -1620,7 +1702,7 @@ class HabitTracker {
       const progressPercent = isCompleted ? 100 : (totalHours / goal.hours) * 100
       
       return `
-        <div class="goal-option ${isCompleted ? 'completed' : ''}" data-goal="${goal.name}" data-hours="${goal.hours}">
+        <div class="goal-option ${isCompleted ? 'completed disabled' : ''}" data-goal="${goal.name}" data-hours="${goal.hours}">
           <div class="goal-info">
             <span class="goal-name">${goal.name}</span>
             <span class="goal-progress">${progressPercent.toFixed(1)}%</span>
