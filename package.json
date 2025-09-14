@@ -10,7 +10,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "db:setup": "node scripts/db-setup.js",
-    "db:migrate": "node scripts/migrate-db.js",
+    "db:migrate": "node scripts/run-migrations.js",
+    "db:migrate:old": "node scripts/migrate-db.js",
     "db:seed": "node database/seed.js",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix"

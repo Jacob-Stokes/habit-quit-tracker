@@ -11,6 +11,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 import database from './config/database.js'
+import { runMigrations } from '../database/migrations/migration-system.js'
 
 // Import routes
 import authRoutes from './routes/auth.js'
@@ -112,6 +113,11 @@ app.use('/api', (req, res) => {
 const startServer = async () => {
   try {
     await database.connect()
+
+    // Run migrations to ensure database is up to date
+    const dbPath = path.join(__dirname, '..', 'database', 'habits.db')
+    console.log('📦 Checking database migrations...')
+    await runMigrations(dbPath)
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`)
