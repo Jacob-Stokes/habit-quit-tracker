@@ -13,6 +13,7 @@ class User {
     this.show_logs_tab = data.show_logs_tab !== 0
     this.custom_title = data.custom_title || 'Habit Tracker'
     this.show_title_section = data.show_title_section !== 0
+    this.selected_theme = data.selected_theme || 'light'
     this.created_at = data.created_at
   }
 
@@ -75,6 +76,7 @@ class User {
       show_logs_tab: this.show_logs_tab,
       custom_title: this.custom_title,
       show_title_section: this.show_title_section,
+      selected_theme: this.selected_theme,
       created_at: this.created_at
     }
   }
@@ -116,6 +118,11 @@ class User {
     if (preferences.showTitleSection !== undefined) {
       updates.push('show_title_section = ?')
       values.push(preferences.showTitleSection ? 1 : 0)
+    }
+
+    if (preferences.selectedTheme !== undefined) {
+      updates.push('selected_theme = ?')
+      values.push(preferences.selectedTheme)
     }
 
     if (updates.length === 0) {

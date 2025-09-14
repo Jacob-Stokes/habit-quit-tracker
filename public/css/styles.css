@@ -1,3 +1,86 @@
+/* CSS Variables for Theming */
+:root {
+    /* Light theme (default) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-tertiary: #e9ecef;
+
+    --text-primary: #212529;
+    --text-secondary: #495057;
+    --text-muted: #6c757d;
+
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+
+    --border: #dee2e6;
+    --border-light: #e9ecef;
+    --shadow: rgba(0, 0, 0, 0.1);
+
+    --habit-color: #10b981;
+    --quit-color: #ef4444;
+
+    /* Gradient backgrounds (can be customized per theme) */
+    --gradient-start: #667eea;
+    --gradient-end: #764ba2;
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #404040;
+
+    --text-primary: #ffffff;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
+
+    --primary: #818cf8;
+    --primary-hover: #6366f1;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f87171;
+
+    --border: #404040;
+    --border-light: #525252;
+    --shadow: rgba(0, 0, 0, 0.3);
+
+    --habit-color: #34d399;
+    --quit-color: #f87171;
+
+    --gradient-start: #4c1d95;
+    --gradient-end: #5b21b6;
+}
+
+/* Ocean theme */
+[data-theme="ocean"] {
+    --bg-primary: #f0f9ff;
+    --bg-secondary: #e0f2fe;
+    --bg-tertiary: #bae6fd;
+
+    --text-primary: #0c4a6e;
+    --text-secondary: #075985;
+    --text-muted: #0284c7;
+
+    --primary: #0ea5e9;
+    --primary-hover: #0284c7;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+
+    --border: #7dd3fc;
+    --border-light: #bae6fd;
+    --shadow: rgba(14, 165, 233, 0.1);
+
+    --habit-color: #06b6d4;
+    --quit-color: #f97316;
+
+    --gradient-start: #0891b2;
+    --gradient-end: #0e7490;
+}
+
 /* Reset and base styles */
 * {
     box-sizing: border-box;
@@ -8,10 +91,11 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
     line-height: 1.6;
-    color: #333;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: var(--text-primary);
+    background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
     height: 100vh;
     overflow: hidden;
+    transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Mobile layout fixes */
@@ -71,7 +155,7 @@ body {
 }
 
 .auth-card {
-    background: white;
+    background: var(--bg-primary);
     border-radius: 12px;
     padding: 40px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
@@ -83,7 +167,7 @@ body {
 .auth-card h1 {
     font-size: 2rem;
     margin-bottom: 8px;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .subtitle {
@@ -93,7 +177,7 @@ body {
 
 .auth-form h2 {
     margin-bottom: 24px;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .input-group {
@@ -140,7 +224,7 @@ body {
 
 /* Buttons */
 .btn {
-    background: #6366f1;
+    background: var(--primary);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -176,7 +260,7 @@ body {
 }
 
 .btn-danger {
-    background: #ef4444;
+    background: var(--danger);
 }
 
 .btn-danger:hover {
@@ -212,7 +296,7 @@ body {
 
 .header-content h1 {
     font-size: 1.5rem;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .header-menu {
@@ -239,7 +323,7 @@ body {
     position: absolute;
     top: 100%;
     right: 0;
-    background: white;
+    background: var(--bg-primary);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     border: 1px solid #e5e7eb;
@@ -313,7 +397,7 @@ body {
 
 .today-summary h2 {
     margin-bottom: 16px;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .today-events {
@@ -342,7 +426,7 @@ body {
 
 .activities-section h2 {
     margin-bottom: 24px;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .activities-grid {
@@ -446,7 +530,7 @@ body {
 }
 
 .activity-type.habit {
-    background: #10b981;
+    background: var(--success);
 }
 
 .activity-type.quit {
@@ -467,7 +551,7 @@ body {
 
 .stat-value {
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .activity-actions {
@@ -482,7 +566,7 @@ body {
 }
 
 .log-btn.habit {
-    background: #10b981;
+    background: var(--success);
 }
 
 .log-btn.habit:hover {
@@ -518,7 +602,7 @@ body {
 .time-display {
     font-size: 1.8rem;
     font-weight: 700;
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 8px;
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
@@ -556,7 +640,7 @@ body {
 .progress-percent {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .progress-goal {
@@ -591,13 +675,13 @@ body {
 
 .habit-stats .stat-value {
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
 }
 
 /* Goal dropdown styles */
 .goal-dropdown {
     position: absolute;
-    background: white;
+    background: var(--bg-primary);
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
     border: 1px solid #e5e7eb;
@@ -764,7 +848,7 @@ body {
 }
 
 .modal-content {
-    background: white;
+    background: var(--bg-primary);
     border-radius: 12px;
     width: 100%;
     max-width: 500px;
@@ -799,7 +883,7 @@ body {
 }
 
 .close-btn:hover {
-    color: #333;
+    color: var(--text-primary);
 }
 
 .activity-form {
@@ -834,7 +918,7 @@ body {
 }
 
 .message {
-    background: white;
+    background: var(--bg-primary);
     padding: 16px 20px;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -1177,7 +1261,7 @@ body {
 }
 
 .calendar-container {
-    background: white;
+    background: var(--bg-primary);
     border-radius: 12px;
     padding: 16px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -1242,7 +1326,7 @@ body {
 
 .calendar-day {
     position: relative;
-    background: white;
+    background: var(--bg-primary);
     min-height: 44px;
     padding: 6px;
     display: flex;
@@ -1285,7 +1369,7 @@ body {
     transform: translateX(-50%);
     width: 6px;
     height: 6px;
-    background: #ef4444;
+    background: var(--danger);
     border-radius: 50%;
 }
 
@@ -1347,7 +1431,7 @@ body {
 }
 
 .tab-button.active {
-    background: white;
+    background: var(--bg-primary);
     color: #374151;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -1484,7 +1568,7 @@ body {
     position: absolute;
     top: 100%;
     right: 0;
-    background: white;
+    background: var(--bg-primary);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     border: 1px solid #e5e7eb;
@@ -1566,13 +1650,13 @@ body {
 }
 
 .view-toggle-btn:hover {
-    background: white;
+    background: var(--bg-primary);
     color: #1f2937;
     transform: scale(1.05);
 }
 
 .view-toggle-btn.active {
-    background: white;
+    background: var(--bg-primary);
     color: #1f2937;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
@@ -1725,7 +1809,7 @@ body {
 
 /* Day entries modal */
 .modal-content.day-entries-modal {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 8px;
   max-width: 500px;
   width: 90%;
@@ -1794,11 +1878,11 @@ body {
   border-top: 1px solid #e9ecef;
   text-align: center;
   flex-shrink: 0;
-  background: white;
+  background: var(--bg-primary);
 }
 
 .add-new-entry-btn {
-  background: #6366f1;
+  background: var(--primary);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -1835,7 +1919,7 @@ body {
 }
 
 .settings-modal-content {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   width: 90%;
   max-width: 800px;
@@ -1956,7 +2040,7 @@ body {
   padding: 8px 12px;
   border: 1px solid #dee2e6;
   border-radius: 4px;
-  background: white;
+  background: var(--bg-primary);
   color: #495057;
   font-size: 14px;
   min-width: 200px;
@@ -2077,7 +2161,7 @@ body {
   font-family: monospace;
   font-size: 14px;
   word-break: break-all;
-  background: white;
+  background: var(--bg-primary);
   padding: 10px;
   border-radius: 4px;
   border: 1px solid #dee2e6;
@@ -2131,7 +2215,7 @@ body {
 }
 
 .api-endpoint code {
-  background: white;
+  background: var(--bg-primary);
   padding: 8px 12px;
   border-radius: 4px;
   font-size: 14px;
@@ -2189,7 +2273,7 @@ body {
 }
 
 .edit-btn {
-  background: #6366f1;
+  background: var(--primary);
   color: white;
   border: none;
   padding: 8px 12px;

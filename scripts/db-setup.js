@@ -34,6 +34,7 @@ const createTables = () => {
         show_logs_tab BOOLEAN DEFAULT 1,
         custom_title TEXT DEFAULT 'Habit Tracker',
         show_title_section BOOLEAN DEFAULT 1,
+        selected_theme TEXT DEFAULT 'light',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `, (err) => {
@@ -117,6 +118,25 @@ const createTables = () => {
         console.error('❌ Error creating sessions table:', err.message)
       } else {
         console.log('✅ Sessions table ready')
+      }
+    })
+
+    // Themes table for custom user themes
+    db.run(`
+      CREATE TABLE IF NOT EXISTS themes (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        is_default BOOLEAN DEFAULT 0,
+        colors TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `, (err) => {
+      if (err) {
+        console.error('❌ Error creating themes table:', err.message)
+      } else {
+        console.log('✅ Themes table ready')
       }
     })
 

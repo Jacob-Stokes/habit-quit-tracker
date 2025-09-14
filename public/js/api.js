@@ -193,6 +193,38 @@ class API {
       method: 'POST'
     })
   }
+
+  // Theme methods
+  async getThemes() {
+    return this.request('/themes')
+  }
+
+  async createTheme(themeData) {
+    return this.request('/themes', {
+      method: 'POST',
+      body: themeData
+    })
+  }
+
+  async updateTheme(themeId, themeData) {
+    return this.request(`/themes/${themeId}`, {
+      method: 'PUT',
+      body: themeData
+    })
+  }
+
+  async deleteTheme(themeId) {
+    return this.request(`/themes/${themeId}`, {
+      method: 'DELETE'
+    })
+  }
+
+  async applyTheme(themeName) {
+    return this.request('/themes/apply', {
+      method: 'POST',
+      body: { themeName }
+    })
+  }
 }
 
 // Create a global API instance

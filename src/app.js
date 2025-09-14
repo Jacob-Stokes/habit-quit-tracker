@@ -17,6 +17,7 @@ import authRoutes from './routes/auth.js'
 import activityRoutes from './routes/activities.js'
 import eventRoutes from './routes/events.js'
 import apiKeyRoutes from './routes/apikeys.js'
+import themeRoutes from './routes/themes.js'
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url)
@@ -73,6 +74,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/activities', activityRoutes)
 app.use('/api/events', eventRoutes)
 app.use('/api/apikeys', apiKeyRoutes)
+app.use('/api/themes', themeRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

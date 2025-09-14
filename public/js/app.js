@@ -11,6 +11,10 @@ class HabitTracker {
 
   async initializeApp() {
     try {
+      // Apply saved theme immediately for instant loading
+      const savedTheme = localStorage.getItem('selectedTheme') || 'light'
+      this.applyTheme(savedTheme)
+
       // Check authentication status
       const authStatus = await api.checkAuthStatus()
 
@@ -76,6 +80,7 @@ class HabitTracker {
       this.updateTabVisibility()
       this.updateAppTitle()
       this.updateTitleSectionVisibility()
+      this.applyTheme(this.currentUser?.selected_theme || 'light')
 
       // Restore the active tab from localStorage
       this.restoreActiveTab()
@@ -516,6 +521,21 @@ class HabitTracker {
       }
     })
 
+    // Theme selector
+    document.getElementById('theme-select')?.addEventListener('change', async (e) => {
+      const selectedTheme = e.target.value
+
+      if (selectedTheme === 'custom') {
+        // Show custom theme editor (to be implemented)
+        this.showMessage('Custom theme editor coming soon!', 'info')
+        // Reset to current theme
+        e.target.value = this.currentUser?.selected_theme || 'light'
+        return
+      }
+
+      await this.switchTheme(selectedTheme)
+    })
+
     // API key management
     document.getElementById('create-api-key-btn')?.addEventListener('click', () => {
       this.createApiKey()
@@ -706,6 +726,37 @@ class HabitTracker {
         headerMenu.style.transform = ''
         headerContent.appendChild(headerMenu)
       }
+    }
+  }
+
+  // Theme methods
+  applyTheme(themeName) {
+    if (!themeName) return
+
+    // Apply the theme to the document
+    document.documentElement.setAttribute('data-theme', themeName)
+
+    // Store in localStorage for immediate access
+    localStorage.setItem('selectedTheme', themeName)
+  }
+
+  async switchTheme(themeName) {
+    try {
+      // Apply theme locally first for instant feedback
+      this.applyTheme(themeName)
+
+      // Save to server
+      await api.updatePreferences({ selectedTheme: themeName })
+
+      // Update user object
+      if (this.currentUser) {
+        this.currentUser.selected_theme = themeName
+      }
+
+      this.showMessage(`Theme switched to ${themeName}`, 'success')
+    } catch (error) {
+      console.error('Error switching theme:', error)
+      this.showMessage('Failed to switch theme', 'error')
     }
   }
 
@@ -2034,6 +2085,12 @@ class HabitTracker {
         if (habitsCheckbox) habitsCheckbox.checked = user.show_habits_tab !== false
         if (quitsCheckbox) quitsCheckbox.checked = user.show_quits_tab !== false
         if (logsCheckbox) logsCheckbox.checked = user.show_logs_tab !== false
+
+        // Load selected theme
+        const themeSelect = document.getElementById('theme-select')
+        if (themeSelect) {
+          themeSelect.value = user.selected_theme || 'light'
+        }
 
         // Store for later use
         this.userDefaultAbstinenceText = user.default_abstinence_text || 'Abstinence time'
