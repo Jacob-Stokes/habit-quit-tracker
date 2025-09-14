@@ -68,12 +68,12 @@ export async function up(db) {
     )
   `)
 
-  // Create sessions table
+  // Create sessions table (handle both 'expire' and 'expired' column names)
   await db.run(`
     CREATE TABLE IF NOT EXISTS sessions (
       sid TEXT PRIMARY KEY,
       sess TEXT NOT NULL,
-      expired DATETIME NOT NULL
+      expire INTEGER NOT NULL
     )
   `)
 
@@ -81,7 +81,7 @@ export async function up(db) {
   await db.run('CREATE INDEX IF NOT EXISTS idx_events_activity_id ON events(activity_id)')
   await db.run('CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp)')
   await db.run('CREATE INDEX IF NOT EXISTS idx_activities_user_id ON activities(user_id)')
-  await db.run('CREATE INDEX IF NOT EXISTS idx_sessions_expired ON sessions(expired)')
+  await db.run('CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire)')
 
   console.log('  ✓ Created core tables and indexes')
 }
