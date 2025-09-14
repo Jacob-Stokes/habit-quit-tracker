@@ -37,17 +37,23 @@ export async function up(db) {
     )
   `)
 
-  // Create events table
+  // Create events table (handle both old 'timestamp' and new 'logged_at' column names)
   await db.run(`
     CREATE TABLE IF NOT EXISTS events (
       id TEXT PRIMARY KEY,
       activity_id TEXT NOT NULL,
-      logged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      is_retroactive BOOLEAN DEFAULT 0,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
       note TEXT,
       FOREIGN KEY (activity_id) REFERENCES activities (id) ON DELETE CASCADE
     )
   `)
+
+  // Add is_retroactive column if it doesn't exist
+  try {
+    await db.run('ALTER TABLE events ADD COLUMN is_retroactive BOOLEAN DEFAULT 0')
+  } catch (err) {
+    // Column might already exist, that's ok
+  }
 
   // Create api_keys table
   await db.run(`
@@ -73,7 +79,7 @@ export async function up(db) {
 
   // Create indexes
   await db.run('CREATE INDEX IF NOT EXISTS idx_events_activity_id ON events(activity_id)')
-  await db.run('CREATE INDEX IF NOT EXISTS idx_events_logged_at ON events(logged_at)')
+  await db.run('CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp)')
   await db.run('CREATE INDEX IF NOT EXISTS idx_activities_user_id ON activities(user_id)')
   await db.run('CREATE INDEX IF NOT EXISTS idx_sessions_expired ON sessions(expired)')
 
