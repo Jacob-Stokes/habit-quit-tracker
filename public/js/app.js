@@ -72,6 +72,11 @@ class HabitTracker {
       this.renderActivities()
       this.renderTodayEvents()
 
+      // Update UI based on user preferences
+      this.updateTabVisibility()
+      this.updateAppTitle()
+      this.updateTitleSectionVisibility()
+
       // Restore the active tab from localStorage
       this.restoreActiveTab()
 
@@ -388,6 +393,129 @@ class HabitTracker {
       }
     })
 
+    // Tab visibility settings
+    const habitsCheckbox = document.getElementById('show-habits-tab')
+    const quitsCheckbox = document.getElementById('show-quits-tab')
+    const logsCheckbox = document.getElementById('show-logs-tab')
+    const tabVisibilityError = document.getElementById('tab-visibility-error')
+
+    const updateTabVisibilitySettings = async () => {
+      const showHabits = habitsCheckbox?.checked
+      const showQuits = quitsCheckbox?.checked
+      const showLogs = logsCheckbox?.checked
+
+      // Validate that at least one main tab is visible
+      if (!showHabits && !showQuits) {
+        tabVisibilityError.style.display = 'block'
+        // Revert the change
+        if (this.currentUser?.show_habits_tab) {
+          habitsCheckbox.checked = true
+        } else {
+          quitsCheckbox.checked = true
+        }
+        return
+      }
+
+      tabVisibilityError.style.display = 'none'
+
+      try {
+        await api.updatePreferences({
+          showHabitsTab: showHabits,
+          showQuitsTab: showQuits,
+          showLogsTab: showLogs
+        })
+
+        // Update local user object
+        this.currentUser.show_habits_tab = showHabits
+        this.currentUser.show_quits_tab = showQuits
+        this.currentUser.show_logs_tab = showLogs
+
+        // Update UI
+        this.updateTabVisibility()
+
+        // If current tab is now hidden, switch to first visible tab
+        const currentTab = document.querySelector('.tab-button.active')?.dataset.tab
+        if ((currentTab === 'habits' && !showHabits) ||
+            (currentTab === 'quits' && !showQuits) ||
+            (currentTab === 'logs' && !showLogs)) {
+          if (showHabits) {
+            this.switchTab('habits')
+          } else if (showQuits) {
+            this.switchTab('quits')
+          } else if (showLogs) {
+            this.switchTab('logs')
+          }
+        }
+
+        this.showMessage('Tab visibility updated', 'success')
+      } catch (error) {
+        console.error('Error updating tab visibility:', error)
+        this.showMessage('Failed to update tab visibility', 'error')
+        // Revert checkboxes on error
+        habitsCheckbox.checked = this.currentUser?.show_habits_tab
+        quitsCheckbox.checked = this.currentUser?.show_quits_tab
+        logsCheckbox.checked = this.currentUser?.show_logs_tab
+      }
+    }
+
+    habitsCheckbox?.addEventListener('change', updateTabVisibilitySettings)
+    quitsCheckbox?.addEventListener('change', updateTabVisibilitySettings)
+    logsCheckbox?.addEventListener('change', updateTabVisibilitySettings)
+
+    // Custom title settings
+    document.getElementById('save-custom-title')?.addEventListener('click', async () => {
+      const input = document.getElementById('custom-title')
+      const value = input.value.trim() || 'Habit Tracker'
+
+      try {
+        await api.updatePreferences({ customTitle: value })
+        this.currentUser.custom_title = value
+        this.updateAppTitle()
+        this.showMessage('Title updated successfully', 'success')
+      } catch (error) {
+        console.error('Error saving custom title:', error)
+        this.showMessage('Failed to save title', 'error')
+      }
+    })
+
+    // Restore default title
+    document.getElementById('restore-title-default')?.addEventListener('click', async () => {
+      try {
+        const response = await api.restoreDefaultPreferences()
+        const defaultTitle = response.preferences.custom_title
+
+        // Update the input field
+        const input = document.getElementById('custom-title')
+        if (input) {
+          input.value = defaultTitle
+        }
+
+        this.currentUser.custom_title = defaultTitle
+        this.updateAppTitle()
+        this.showMessage('Title restored to default: "' + defaultTitle + '"', 'success')
+      } catch (error) {
+        console.error('Error restoring default title:', error)
+        this.showMessage('Failed to restore default title', 'error')
+      }
+    })
+
+    // Title section visibility
+    document.getElementById('show-title-section')?.addEventListener('change', async (e) => {
+      const showTitle = e.target.checked
+
+      try {
+        await api.updatePreferences({ showTitleSection: showTitle })
+        this.currentUser.show_title_section = showTitle
+        this.updateTitleSectionVisibility()
+        this.showMessage(showTitle ? 'Title section shown' : 'Title section hidden', 'success')
+      } catch (error) {
+        console.error('Error updating title visibility:', error)
+        this.showMessage('Failed to update title visibility', 'error')
+        // Revert on error
+        e.target.checked = this.currentUser?.show_title_section !== false
+      }
+    })
+
     // API key management
     document.getElementById('create-api-key-btn')?.addEventListener('click', () => {
       this.createApiKey()
@@ -478,8 +606,107 @@ class HabitTracker {
 
   restoreActiveTab() {
     // Get the saved tab from localStorage, default to 'habits'
-    const savedTab = localStorage.getItem('activeTab') || 'habits'
+    let savedTab = localStorage.getItem('activeTab') || 'habits'
+
+    // If the saved tab is hidden, switch to the first visible tab
+    if ((savedTab === 'habits' && !this.currentUser?.show_habits_tab) ||
+        (savedTab === 'quits' && !this.currentUser?.show_quits_tab) ||
+        (savedTab === 'logs' && !this.currentUser?.show_logs_tab)) {
+      // Find the first visible tab
+      if (this.currentUser?.show_habits_tab) {
+        savedTab = 'habits'
+      } else if (this.currentUser?.show_quits_tab) {
+        savedTab = 'quits'
+      } else if (this.currentUser?.show_logs_tab) {
+        savedTab = 'logs'
+      }
+    }
+
     this.switchTab(savedTab)
+  }
+
+  updateTabVisibility() {
+    if (!this.currentUser) return
+
+    // Update tab button visibility
+    const habitsTab = document.querySelector('[data-tab="habits"]')
+    const quitsTab = document.querySelector('[data-tab="quits"]')
+    const logsTab = document.querySelector('[data-tab="logs"]')
+
+    if (habitsTab) habitsTab.style.display = this.currentUser.show_habits_tab ? '' : 'none'
+    if (quitsTab) quitsTab.style.display = this.currentUser.show_quits_tab ? '' : 'none'
+    if (logsTab) logsTab.style.display = this.currentUser.show_logs_tab ? '' : 'none'
+
+    // Update checkbox states in settings
+    const habitsCheckbox = document.getElementById('show-habits-tab')
+    const quitsCheckbox = document.getElementById('show-quits-tab')
+    const logsCheckbox = document.getElementById('show-logs-tab')
+
+    if (habitsCheckbox) habitsCheckbox.checked = this.currentUser.show_habits_tab
+    if (quitsCheckbox) quitsCheckbox.checked = this.currentUser.show_quits_tab
+    if (logsCheckbox) logsCheckbox.checked = this.currentUser.show_logs_tab
+  }
+
+  updateAppTitle() {
+    if (!this.currentUser) return
+
+    const title = this.currentUser.custom_title || 'Habit Tracker'
+
+    // Update page title
+    document.title = title
+
+    // Update header title
+    const headerTitle = document.querySelector('.header-content h1')
+    if (headerTitle) {
+      headerTitle.textContent = title
+    }
+
+    // Update auth page title
+    const authTitle = document.querySelector('.auth-card h1')
+    if (authTitle) {
+      authTitle.textContent = title
+    }
+  }
+
+  updateTitleSectionVisibility() {
+    if (!this.currentUser) return
+
+    const headerContent = document.querySelector('.header-content')
+    const headerMenu = document.querySelector('.header-menu')
+    const tabButtons = document.querySelector('.tab-buttons')
+
+    if (this.currentUser.show_title_section === false) {
+      // Hide title section
+      if (headerContent) {
+        const h1 = headerContent.querySelector('h1')
+        if (h1) h1.style.display = 'none'
+      }
+
+      // Move menu to tab bar
+      if (headerMenu && tabButtons) {
+        headerMenu.style.position = 'absolute'
+        headerMenu.style.right = '20px'
+        headerMenu.style.top = '50%'
+        headerMenu.style.transform = 'translateY(-50%)'
+        tabButtons.style.position = 'relative'
+        tabButtons.appendChild(headerMenu)
+      }
+    } else {
+      // Show title section
+      if (headerContent) {
+        const h1 = headerContent.querySelector('h1')
+        if (h1) h1.style.display = ''
+      }
+
+      // Move menu back to header
+      if (headerMenu && headerContent) {
+        headerMenu.style.position = ''
+        headerMenu.style.right = ''
+        headerMenu.style.top = ''
+        headerMenu.style.transform = ''
+        headerContent.appendChild(headerMenu)
+      }
+    }
   }
 
   // Authentication methods
@@ -1786,6 +2013,27 @@ class HabitTracker {
         if (abstinenceTextInput) {
           abstinenceTextInput.value = user.default_abstinence_text || 'Abstinence time'
         }
+
+        // Load custom title
+        const titleInput = document.getElementById('custom-title')
+        if (titleInput) {
+          titleInput.value = user.custom_title || 'Habit Tracker'
+        }
+
+        // Load title visibility
+        const titleCheckbox = document.getElementById('show-title-section')
+        if (titleCheckbox) {
+          titleCheckbox.checked = user.show_title_section !== false
+        }
+
+        // Load tab visibility settings
+        const habitsCheckbox = document.getElementById('show-habits-tab')
+        const quitsCheckbox = document.getElementById('show-quits-tab')
+        const logsCheckbox = document.getElementById('show-logs-tab')
+
+        if (habitsCheckbox) habitsCheckbox.checked = user.show_habits_tab !== false
+        if (quitsCheckbox) quitsCheckbox.checked = user.show_quits_tab !== false
+        if (logsCheckbox) logsCheckbox.checked = user.show_logs_tab !== false
 
         // Store for later use
         this.userDefaultAbstinenceText = user.default_abstinence_text || 'Abstinence time'

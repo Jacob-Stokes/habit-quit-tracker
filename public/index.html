@@ -386,6 +386,49 @@
                             </div>
                         </div>
                         <div class="settings-item">
+                            <label>App Title
+                                <span class="label-hint">Customize the application title</span>
+                            </label>
+                            <div class="settings-input-group">
+                                <input type="text" id="custom-title" class="settings-input" placeholder="e.g., My Tracker, Daily Goals">
+                                <button class="btn btn-primary btn-sm" id="save-custom-title">Save</button>
+                                <button class="btn btn-secondary btn-sm" id="restore-title-default" title="Restore to system default">Restore Default</button>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <label>Title Bar Visibility
+                                <span class="label-hint">Show or hide the title section</span>
+                            </label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="show-title-section" checked>
+                                    <span>Show Title Section</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <label>Tab Visibility
+                                <span class="label-hint">Choose which tabs to display</span>
+                            </label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="show-habits-tab" checked>
+                                    <span>Show Habits Tab</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="show-quits-tab" checked>
+                                    <span>Show Quits Tab</span>
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="show-logs-tab" checked>
+                                    <span>Show Logs Tab</span>
+                                </label>
+                            </div>
+                            <div id="tab-visibility-error" class="error-message" style="display: none; color: #ef4444; font-size: 0.875rem; margin-top: 0.5rem;">
+                                At least one of Habits or Quits tabs must be visible
+                            </div>
+                        </div>
+                        <div class="settings-item">
                             <label>Theme</label>
                             <select id="theme-select" class="settings-select">
                                 <option value="light">Light</option>

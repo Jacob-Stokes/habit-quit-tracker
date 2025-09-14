@@ -29,6 +29,11 @@ const createTables = () => {
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         default_abstinence_text TEXT DEFAULT 'Abstinence time',
+        show_habits_tab BOOLEAN DEFAULT 1,
+        show_quits_tab BOOLEAN DEFAULT 1,
+        show_logs_tab BOOLEAN DEFAULT 1,
+        custom_title TEXT DEFAULT 'Habit Tracker',
+        show_title_section BOOLEAN DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `, (err) => {
@@ -131,7 +136,9 @@ const createTables = () => {
         // Insert default values
         db.run(`
           INSERT OR IGNORE INTO system_defaults (key, value, description)
-          VALUES ('default_abstinence_text', 'Abstinence time', 'Default text shown for quit activities')
+          VALUES
+            ('default_abstinence_text', 'Abstinence time', 'Default text shown for quit activities'),
+            ('default_title', 'Habit Tracker', 'Default application title')
         `, (err) => {
           if (err) {
             console.error('❌ Error inserting system defaults:', err.message)

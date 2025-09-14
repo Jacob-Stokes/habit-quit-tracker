@@ -8,6 +8,11 @@ class User {
     this.username = data.username
     this.password_hash = data.password_hash
     this.default_abstinence_text = data.default_abstinence_text || 'Abstinence time'
+    this.show_habits_tab = data.show_habits_tab !== 0
+    this.show_quits_tab = data.show_quits_tab !== 0
+    this.show_logs_tab = data.show_logs_tab !== 0
+    this.custom_title = data.custom_title || 'Habit Tracker'
+    this.show_title_section = data.show_title_section !== 0
     this.created_at = data.created_at
   }
 
@@ -65,20 +70,64 @@ class User {
       id: this.id,
       username: this.username,
       default_abstinence_text: this.default_abstinence_text,
+      show_habits_tab: this.show_habits_tab,
+      show_quits_tab: this.show_quits_tab,
+      show_logs_tab: this.show_logs_tab,
+      custom_title: this.custom_title,
+      show_title_section: this.show_title_section,
       created_at: this.created_at
     }
   }
 
   // Update user preferences
   static async updatePreferences(userId, preferences) {
-    const { defaultAbstinenceText } = preferences
-
-    if (defaultAbstinenceText !== undefined) {
-      await database.run(
-        'UPDATE users SET default_abstinence_text = ? WHERE id = ?',
-        [defaultAbstinenceText, userId]
-      )
+    if (!userId) {
+      throw new Error('User ID is required')
     }
+
+    const updates = []
+    const values = []
+
+    if (preferences.defaultAbstinenceText !== undefined) {
+      updates.push('default_abstinence_text = ?')
+      values.push(preferences.defaultAbstinenceText)
+    }
+
+    if (preferences.showHabitsTab !== undefined) {
+      updates.push('show_habits_tab = ?')
+      values.push(preferences.showHabitsTab ? 1 : 0)
+    }
+
+    if (preferences.showQuitsTab !== undefined) {
+      updates.push('show_quits_tab = ?')
+      values.push(preferences.showQuitsTab ? 1 : 0)
+    }
+
+    if (preferences.showLogsTab !== undefined) {
+      updates.push('show_logs_tab = ?')
+      values.push(preferences.showLogsTab ? 1 : 0)
+    }
+
+    if (preferences.customTitle !== undefined) {
+      updates.push('custom_title = ?')
+      values.push(preferences.customTitle)
+    }
+
+    if (preferences.showTitleSection !== undefined) {
+      updates.push('show_title_section = ?')
+      values.push(preferences.showTitleSection ? 1 : 0)
+    }
+
+    if (updates.length === 0) {
+      return true
+    }
+
+    values.push(userId)
+
+    await database.run(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+      values
+    )
 
     return true
   }

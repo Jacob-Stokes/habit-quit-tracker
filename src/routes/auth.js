@@ -151,11 +151,24 @@ router.get('/me', requireAuth, async (req, res) => {
 // Update user preferences
 router.put('/preferences', requireAuth, async (req, res) => {
   try {
-    const { defaultAbstinenceText } = req.body
+    const { defaultAbstinenceText, showHabitsTab, showQuitsTab, showLogsTab, customTitle, showTitleSection } = req.body
 
-    if (defaultAbstinenceText !== undefined) {
-      await User.updatePreferences(req.userId, { defaultAbstinenceText })
+    // Validate that at least one main tab (habits or quits) is visible
+    if (showHabitsTab === false && showQuitsTab === false) {
+      return res.status(400).json({
+        error: 'Invalid configuration',
+        message: 'At least one of Habits or Quits tabs must be visible'
+      })
     }
+
+    await User.updatePreferences(req.userId, {
+      defaultAbstinenceText,
+      showHabitsTab,
+      showQuitsTab,
+      showLogsTab,
+      customTitle,
+      showTitleSection
+    })
 
     res.json({
       message: 'Preferences updated successfully'
@@ -180,20 +193,30 @@ router.get('/status', (req, res) => {
 // Restore default preferences from system defaults
 router.post('/preferences/restore-defaults', requireAuth, async (req, res) => {
   try {
-    // Get system default from database
-    const defaultRow = await database.get(
+    // Get system defaults from database
+    const abstinenceDefault = await database.get(
       'SELECT value FROM system_defaults WHERE key = ?',
       ['default_abstinence_text']
     )
 
-    const defaultValue = defaultRow?.value || 'Abstinence time'
+    const titleDefault = await database.get(
+      'SELECT value FROM system_defaults WHERE key = ?',
+      ['default_title']
+    )
 
-    await User.updatePreferences(req.userId, { defaultAbstinenceText: defaultValue })
+    const defaultAbstinence = abstinenceDefault?.value || 'Abstinence time'
+    const defaultTitle = titleDefault?.value || 'Habit Tracker'
+
+    await User.updatePreferences(req.userId, {
+      defaultAbstinenceText: defaultAbstinence,
+      customTitle: defaultTitle
+    })
 
     res.json({
       message: 'Defaults restored successfully',
       preferences: {
-        default_abstinence_text: defaultValue
+        default_abstinence_text: defaultAbstinence,
+        custom_title: defaultTitle
       }
     })
   } catch (error) {
