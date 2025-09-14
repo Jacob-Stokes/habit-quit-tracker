@@ -34,11 +34,11 @@
                     <h2>Sign In</h2>
                     <div class="input-group">
                         <label for="login-username">Username</label>
-                        <input type="text" id="login-username" name="username" required>
+                        <input type="text" id="login-username" name="username" autocomplete="username" required>
                     </div>
                     <div class="input-group">
                         <label for="login-password">Password</label>
-                        <input type="password" id="login-password" name="password" required>
+                        <input type="password" id="login-password" name="password" autocomplete="current-password" required>
                     </div>
                     <button type="submit" class="btn btn-primary">Sign In</button>
                     <p class="auth-switch">
@@ -52,15 +52,15 @@
                     <h2>Create Account</h2>
                     <div class="input-group">
                         <label for="register-username">Username</label>
-                        <input type="text" id="register-username" name="username" required>
+                        <input type="text" id="register-username" name="username" autocomplete="username" required>
                     </div>
                     <div class="input-group">
                         <label for="register-password">Password</label>
-                        <input type="password" id="register-password" name="password" required>
+                        <input type="password" id="register-password" name="password" autocomplete="new-password" required>
                     </div>
                     <div class="input-group">
                         <label for="register-password-confirm">Confirm Password</label>
-                        <input type="password" id="register-password-confirm" name="password-confirm" required>
+                        <input type="password" id="register-password-confirm" name="password-confirm" autocomplete="new-password" required>
                     </div>
                     <button type="submit" class="btn btn-primary">Create Account</button>
                     <p class="auth-switch">
@@ -430,12 +430,19 @@
                         </div>
                         <div class="settings-item">
                             <label>Theme</label>
-                            <select id="theme-select" class="settings-select">
-                                <option value="light">Light</option>
-                                <option value="dark">Dark</option>
-                                <option value="ocean">Ocean</option>
-                                <option value="custom">Custom Themes...</option>
-                            </select>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <select id="theme-select" class="settings-select" style="flex: 1;">
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="ocean">Ocean</option>
+                                </select>
+                                <button id="create-theme-btn" class="btn btn-secondary" style="white-space: nowrap;">
+                                    Create Theme
+                                </button>
+                            </div>
+                            <div id="custom-themes-list" style="margin-top: 10px; display: none;">
+                                <!-- Custom themes will be listed here -->
+                            </div>
                         </div>
                         <div class="settings-item">
                             <label>Time Zone</label>
@@ -488,6 +495,138 @@
                             <div class="settings-value">
                                 <a href="https://github.com/yourusername/habit-tracker" target="_blank">View on GitHub</a>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Theme Creator Modal -->
+        <div id="theme-creator-modal" class="modal" style="display: none; z-index: 4000;">
+            <div class="modal-content theme-creator-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header">
+                    <h2>Create Custom Theme</h2>
+                    <button class="modal-close" onclick="app.hideThemeCreator()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="theme-creator-form">
+                        <div class="form-group">
+                            <label for="theme-name">Theme Name</label>
+                            <input type="text" id="theme-name" placeholder="My Custom Theme" class="form-input">
+                        </div>
+
+                        <div class="color-section">
+                            <h3>Background Colors</h3>
+                            <div class="color-grid">
+                                <div class="color-input-group">
+                                    <label for="color-bg-primary">Primary Background</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-bg-primary" value="#ffffff">
+                                        <input type="text" id="text-bg-primary" value="#ffffff" class="color-text-input">
+                                    </div>
+                                </div>
+                                <div class="color-input-group">
+                                    <label for="color-bg-secondary">Secondary Background</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-bg-secondary" value="#f8f9fa">
+                                        <input type="text" id="text-bg-secondary" value="#f8f9fa" class="color-text-input">
+                                    </div>
+                                </div>
+                                <div class="color-input-group">
+                                    <label for="color-bg-tertiary">Tertiary Background</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-bg-tertiary" value="#e9ecef">
+                                        <input type="text" id="text-bg-tertiary" value="#e9ecef" class="color-text-input">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="color-section">
+                            <h3>Text Colors</h3>
+                            <div class="color-grid">
+                                <div class="color-input-group">
+                                    <label for="color-text-primary">Primary Text</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-text-primary" value="#212529">
+                                        <input type="text" id="text-text-primary" value="#212529" class="color-text-input">
+                                    </div>
+                                </div>
+                                <div class="color-input-group">
+                                    <label for="color-text-secondary">Secondary Text</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-text-secondary" value="#495057">
+                                        <input type="text" id="text-text-secondary" value="#495057" class="color-text-input">
+                                    </div>
+                                </div>
+                                <div class="color-input-group">
+                                    <label for="color-text-muted">Muted Text</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-text-muted" value="#6c757d">
+                                        <input type="text" id="text-text-muted" value="#6c757d" class="color-text-input">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="color-section">
+                            <h3>Accent Colors</h3>
+                            <div class="color-grid">
+                                <div class="color-input-group">
+                                    <label for="color-primary">Primary</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-primary" value="#6366f1">
+                                        <input type="text" id="text-primary" value="#6366f1" class="color-text-input">
+                                    </div>
+                                </div>
+                                <div class="color-input-group">
+                                    <label for="color-success">Success (Habits)</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-success" value="#10b981">
+                                        <input type="text" id="text-success" value="#10b981" class="color-text-input">
+                                    </div>
+                                </div>
+                                <div class="color-input-group">
+                                    <label for="color-danger">Danger (Quits)</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-danger" value="#ef4444">
+                                        <input type="text" id="text-danger" value="#ef4444" class="color-text-input">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="color-section">
+                            <h3>Other Elements</h3>
+                            <div class="color-grid">
+                                <div class="color-input-group">
+                                    <label for="color-border">Border Color</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-border" value="#dee2e6">
+                                        <input type="text" id="text-border" value="#dee2e6" class="color-text-input">
+                                    </div>
+                                </div>
+                                <div class="color-input-group">
+                                    <label for="color-gradient-start">Gradient Start</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-gradient-start" value="#667eea">
+                                        <input type="text" id="text-gradient-start" value="#667eea" class="color-text-input">
+                                    </div>
+                                </div>
+                                <div class="color-input-group">
+                                    <label for="color-gradient-end">Gradient End</label>
+                                    <div class="color-input-wrapper">
+                                        <input type="color" id="color-gradient-end" value="#764ba2">
+                                        <input type="text" id="text-gradient-end" value="#764ba2" class="color-text-input">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="theme-actions">
+                            <button id="preview-theme-btn" class="btn btn-secondary">Preview Theme</button>
+                            <button id="save-theme-btn" class="btn btn-primary">Save Theme</button>
+                            <button id="cancel-theme-btn" class="btn btn-ghost" onclick="app.hideThemeCreator()">Cancel</button>
                         </div>
                     </div>
                 </div>

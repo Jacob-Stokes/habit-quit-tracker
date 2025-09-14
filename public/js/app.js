@@ -80,6 +80,9 @@ class HabitTracker {
       this.updateTabVisibility()
       this.updateAppTitle()
       this.updateTitleSectionVisibility()
+
+      // Load custom themes and apply selected theme
+      await this.loadCustomThemes()
       this.applyTheme(this.currentUser?.selected_theme || 'light')
 
       // Restore the active tab from localStorage
@@ -356,6 +359,28 @@ class HabitTracker {
         this.hideSettingsModal()
       }
     })
+
+    // Theme creator events
+    document.getElementById('create-theme-btn')?.addEventListener('click', () => {
+      this.showThemeCreator()
+    })
+
+    document.getElementById('theme-creator-modal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'theme-creator-modal') {
+        this.hideThemeCreator()
+      }
+    })
+
+    document.getElementById('preview-theme-btn')?.addEventListener('click', () => {
+      this.previewCustomTheme()
+    })
+
+    document.getElementById('save-theme-btn')?.addEventListener('click', () => {
+      this.saveCustomTheme()
+    })
+
+    // Sync color pickers with text inputs
+    this.setupColorInputSync()
 
     // Save default abstinence text
     document.getElementById('save-abstinence-text')?.addEventListener('click', async () => {
@@ -730,14 +755,45 @@ class HabitTracker {
   }
 
   // Theme methods
-  applyTheme(themeName) {
+  async applyTheme(themeName) {
     if (!themeName) return
 
-    // Apply the theme to the document
-    document.documentElement.setAttribute('data-theme', themeName)
+    // Check if it's a built-in theme
+    const builtInThemes = ['light', 'dark', 'ocean']
+
+    if (builtInThemes.includes(themeName)) {
+      // Apply built-in theme
+      document.documentElement.setAttribute('data-theme', themeName)
+      // Clear any custom CSS variables
+      const root = document.documentElement
+      root.style.cssText = ''
+    } else {
+      // Apply custom theme
+      try {
+        const response = await api.getThemes()
+        const customTheme = response.themes.find(t => t.name === themeName)
+
+        if (customTheme && customTheme.colors) {
+          // Remove data-theme attribute for custom themes
+          document.documentElement.removeAttribute('data-theme')
+
+          // Apply custom colors as CSS variables
+          const root = document.documentElement
+          const colors = JSON.parse(customTheme.colors)
+          for (const [key, value] of Object.entries(colors)) {
+            root.style.setProperty(`--${key}`, value)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load custom theme:', error)
+        // Fall back to light theme
+        document.documentElement.setAttribute('data-theme', 'light')
+      }
+    }
 
     // Store in localStorage for immediate access
     localStorage.setItem('selectedTheme', themeName)
+    this.selectedTheme = themeName
   }
 
   async switchTheme(themeName) {
@@ -2047,8 +2103,243 @@ class HabitTracker {
     }
   }
 
+  showThemeCreator() {
+    const modal = document.getElementById('theme-creator-modal')
+    if (modal) {
+      modal.style.display = 'flex'
+      // Load current theme colors as defaults
+      this.loadCurrentThemeColors()
+    }
+  }
+
+  hideThemeCreator() {
+    const modal = document.getElementById('theme-creator-modal')
+    if (modal) {
+      modal.style.display = 'none'
+      // Revert any preview changes
+      if (this.previewingTheme) {
+        this.applyTheme(this.selectedTheme || 'light')
+        this.previewingTheme = false
+      }
+    }
+  }
+
+  loadCurrentThemeColors() {
+    const computedStyle = getComputedStyle(document.documentElement)
+    const colorMappings = {
+      'bg-primary': '--bg-primary',
+      'bg-secondary': '--bg-secondary',
+      'bg-tertiary': '--bg-tertiary',
+      'text-primary': '--text-primary',
+      'text-secondary': '--text-secondary',
+      'text-muted': '--text-muted',
+      'primary': '--primary',
+      'success': '--success',
+      'danger': '--danger',
+      'border': '--border',
+      'gradient-start': '--gradient-start',
+      'gradient-end': '--gradient-end'
+    }
+
+    for (const [inputId, cssVar] of Object.entries(colorMappings)) {
+      const color = computedStyle.getPropertyValue(cssVar).trim()
+      const colorInput = document.getElementById(`color-${inputId}`)
+      const textInput = document.getElementById(`text-${inputId}`)
+
+      if (colorInput && textInput && color) {
+        // Convert to hex if needed
+        const hexColor = this.cssColorToHex(color)
+        colorInput.value = hexColor
+        textInput.value = hexColor
+      }
+    }
+  }
+
+  cssColorToHex(color) {
+    // If already hex, return as is
+    if (color.startsWith('#')) {
+      return color
+    }
+
+    // Convert rgb/rgba to hex
+    const canvas = document.createElement('canvas')
+    canvas.height = 1
+    canvas.width = 1
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = color
+    ctx.fillRect(0, 0, 1, 1)
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data
+    return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')
+  }
+
+  setupColorInputSync() {
+    const colorInputs = document.querySelectorAll('input[type="color"]')
+    colorInputs.forEach(colorInput => {
+      const inputId = colorInput.id.replace('color-', 'text-')
+      const textInput = document.getElementById(inputId)
+
+      if (textInput) {
+        // Sync color picker to text input
+        colorInput.addEventListener('input', (e) => {
+          textInput.value = e.target.value
+        })
+
+        // Sync text input to color picker
+        textInput.addEventListener('input', (e) => {
+          const value = e.target.value
+          if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+            colorInput.value = value
+          }
+        })
+      }
+    })
+  }
+
+  previewCustomTheme() {
+    const themeColors = this.getThemeColorsFromInputs()
+
+    // Apply the colors as CSS variables
+    const root = document.documentElement
+    for (const [key, value] of Object.entries(themeColors)) {
+      root.style.setProperty(`--${key}`, value)
+    }
+
+    this.previewingTheme = true
+    this.showMessage('Preview applied! Click "Save Theme" to keep it or "Cancel" to revert.', 'info')
+  }
+
+  getThemeColorsFromInputs() {
+    const colorMappings = {
+      'bg-primary': 'bg-primary',
+      'bg-secondary': 'bg-secondary',
+      'bg-tertiary': 'bg-tertiary',
+      'text-primary': 'text-primary',
+      'text-secondary': 'text-secondary',
+      'text-muted': 'text-muted',
+      'primary': 'primary',
+      'primary-hover': 'primary', // Use same as primary for now
+      'success': 'success',
+      'warning': 'success', // Use success color for warning
+      'danger': 'danger',
+      'border': 'border',
+      'border-light': 'border', // Use same as border
+      'shadow': 'rgba(0, 0, 0, 0.1)',
+      'habit-color': 'success',
+      'quit-color': 'danger',
+      'gradient-start': 'gradient-start',
+      'gradient-end': 'gradient-end'
+    }
+
+    const colors = {}
+    for (const [cssVar, inputId] of Object.entries(colorMappings)) {
+      if (inputId.includes('rgba')) {
+        colors[cssVar] = inputId
+      } else {
+        const textInput = document.getElementById(`text-${inputId}`)
+        if (textInput) {
+          colors[cssVar] = textInput.value
+        }
+      }
+    }
+
+    return colors
+  }
+
+  async saveCustomTheme() {
+    const themeName = document.getElementById('theme-name').value.trim()
+
+    if (!themeName) {
+      this.showMessage('Please enter a theme name', 'error')
+      return
+    }
+
+    const themeColors = this.getThemeColorsFromInputs()
+
+    try {
+      // Save the theme to the backend
+      await api.createTheme({
+        name: themeName,
+        colors: themeColors
+      })
+
+      // Add to theme selector
+      await this.loadCustomThemes()
+
+      // Apply the theme
+      this.applyTheme(themeName)
+      this.selectedTheme = themeName
+
+      // Update theme selector
+      const themeSelect = document.getElementById('theme-select')
+      if (themeSelect) {
+        // Add the new theme if not exists
+        let optionExists = false
+        for (let option of themeSelect.options) {
+          if (option.value === themeName) {
+            optionExists = true
+            break
+          }
+        }
+
+        if (!optionExists) {
+          const option = document.createElement('option')
+          option.value = themeName
+          option.textContent = themeName
+          themeSelect.appendChild(option)
+        }
+
+        themeSelect.value = themeName
+      }
+
+      // Save preference
+      await api.updatePreferences({ selectedTheme: themeName })
+
+      this.showMessage('Theme saved successfully!', 'success')
+      this.hideThemeCreator()
+      this.previewingTheme = false
+
+    } catch (error) {
+      console.error('Failed to save theme:', error)
+      this.showMessage('Failed to save theme', 'error')
+    }
+  }
+
+  async loadCustomThemes() {
+    try {
+      const response = await api.getThemes()
+      if (response && response.themes) {
+        const themeSelect = document.getElementById('theme-select')
+        if (themeSelect) {
+          // Remove existing custom themes
+          const customOptions = Array.from(themeSelect.options).filter(
+            opt => !['light', 'dark', 'ocean'].includes(opt.value)
+          )
+          customOptions.forEach(opt => opt.remove())
+
+          // Add custom themes
+          response.themes.forEach(theme => {
+            if (!theme.is_built_in) {
+              const option = document.createElement('option')
+              option.value = theme.name
+              option.textContent = theme.name
+              themeSelect.appendChild(option)
+            }
+          })
+        }
+
+        // Store themes for later use
+        this.customThemes = response.themes.filter(t => !t.is_built_in)
+      }
+    } catch (error) {
+      console.error('Failed to load custom themes:', error)
+    }
+  }
+
   async loadSettingsData() {
     try {
+      // Load custom themes
+      await this.loadCustomThemes()
+
       // Get current user info
       const response = await api.getCurrentUser()
       if (response && response.user) {
