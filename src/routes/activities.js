@@ -1,5 +1,6 @@
 import express from 'express'
 import Activity from '../models/Activity.js'
+import User from '../models/User.js'
 import database from '../config/database.js'
 import { requireAuth } from '../middleware/auth.js'
 
@@ -21,6 +22,18 @@ router.get('/', async (req, res) => {
     } else {
       activities = await Activity.findByUserId(req.userId)
     }
+
+    // Get user's default abstinence text
+    const user = await User.findById(req.userId)
+    const userDefaultText = user?.default_abstinence_text || 'Abstinence time'
+
+    // Apply user's default to activities using default
+    activities = activities.map(activity => {
+      if (activity.type === 'quit' && activity.use_default_abstinence_text) {
+        activity.abstinence_text = userDefaultText
+      }
+      return activity
+    })
 
     // Add statistics if requested
     if (includeStats) {
@@ -56,6 +69,12 @@ router.get('/:id', async (req, res) => {
     // Include statistics by default for single activity requests
     const statistics = await activity.getStatistics()
 
+    // Apply user's default abstinence text if needed
+    if (activity.type === 'quit' && activity.use_default_abstinence_text) {
+      const user = await User.findById(req.userId)
+      activity.abstinence_text = user?.default_abstinence_text || 'Abstinence time'
+    }
+
     res.json({
       activity: {
         ...activity.toJSON(),
@@ -74,7 +93,7 @@ router.get('/:id', async (req, res) => {
 // Create a new activity
 router.post('/', async (req, res) => {
   try {
-    const { name, type, color, icon } = req.body
+    const { name, type, color, icon, abstinenceText } = req.body
 
     // Validation
     if (!name || !type) {
@@ -98,11 +117,16 @@ router.post('/', async (req, res) => {
       })
     }
 
+    // Determine if using default
+    const useDefaultAbstinence = !abstinenceText || abstinenceText === ''
+
     const activity = await Activity.create(req.userId, {
       name,
       type,
       color,
-      icon
+      icon,
+      abstinenceText,
+      useDefaultAbstinence
     })
 
     res.status(201).json({
@@ -138,7 +162,7 @@ router.put('/:id', async (req, res) => {
       })
     }
 
-    const { name, type, color, icon } = req.body
+    const { name, type, color, icon, abstinenceText } = req.body
 
     // Validation
     if (name !== undefined && (name.length < 1 || name.length > 100)) {
@@ -155,12 +179,22 @@ router.put('/:id', async (req, res) => {
       })
     }
 
-    const updatedActivity = await activity.update({
+    const updateData = {
       name,
       type,
       color,
       icon
-    })
+    }
+
+    // Handle abstinence text update
+    if (abstinenceText === '' || abstinenceText === null) {
+      updateData.use_default_abstinence_text = true
+    } else if (abstinenceText !== undefined) {
+      updateData.abstinence_text = abstinenceText
+      updateData.use_default_abstinence_text = false
+    }
+
+    const updatedActivity = await activity.update(updateData)
 
     res.json({
       message: 'Activity updated successfully',

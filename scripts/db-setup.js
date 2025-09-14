@@ -28,6 +28,7 @@ const createTables = () => {
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
+        default_abstinence_text TEXT DEFAULT 'Abstinence time',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `, (err) => {
@@ -51,6 +52,8 @@ const createTables = () => {
         archived BOOLEAN DEFAULT 0,
         selected_goal_name TEXT,
         selected_goal_hours INTEGER,
+        abstinence_text TEXT,
+        use_default_abstinence_text BOOLEAN DEFAULT 1,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `, (err) => {
@@ -78,6 +81,25 @@ const createTables = () => {
       }
     })
 
+    // API Keys table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS api_keys (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        key_hash TEXT NOT NULL,
+        last_used DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `, (err) => {
+      if (err) {
+        console.error('❌ Error creating api_keys table:', err.message)
+      } else {
+        console.log('✅ API Keys table ready')
+      }
+    })
+
     // Sessions table for persistent session storage
     db.run(`
       CREATE TABLE IF NOT EXISTS sessions (
@@ -90,6 +112,33 @@ const createTables = () => {
         console.error('❌ Error creating sessions table:', err.message)
       } else {
         console.log('✅ Sessions table ready')
+      }
+    })
+
+    // System defaults table (unchangeable defaults set by developer)
+    db.run(`
+      CREATE TABLE IF NOT EXISTS system_defaults (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        description TEXT
+      )
+    `, (err) => {
+      if (err) {
+        console.error('❌ Error creating system_defaults table:', err.message)
+      } else {
+        console.log('✅ System defaults table ready')
+
+        // Insert default values
+        db.run(`
+          INSERT OR IGNORE INTO system_defaults (key, value, description)
+          VALUES ('default_abstinence_text', 'Abstinence time', 'Default text shown for quit activities')
+        `, (err) => {
+          if (err) {
+            console.error('❌ Error inserting system defaults:', err.message)
+          } else {
+            console.log('✅ System defaults initialized')
+          }
+        })
       }
     })
 

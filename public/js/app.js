@@ -13,8 +13,14 @@ class HabitTracker {
     try {
       // Check authentication status
       const authStatus = await api.checkAuthStatus()
-      
+
       if (authStatus.authenticated) {
+        // Load user preferences first
+        const userResponse = await api.getCurrentUser()
+        if (userResponse && userResponse.user) {
+          this.userDefaultAbstinenceText = userResponse.user.default_abstinence_text || 'Abstinence time'
+        }
+
         await this.loadUserData()
         this.showMainApp()
       } else {
@@ -65,10 +71,10 @@ class HabitTracker {
 
       this.renderActivities()
       this.renderTodayEvents()
-      
+
       // Restore the active tab from localStorage
       this.restoreActiveTab()
-      
+
       this.startLiveUpdates()
     } catch (error) {
       console.error('Error loading user data:', error)
@@ -187,6 +193,10 @@ class HabitTracker {
       this.showActivityModal()
     })
 
+    document.getElementById('settings-btn')?.addEventListener('click', () => {
+      this.showSettingsModal()
+    })
+
     // Modal actions
     document.getElementById('close-modal')?.addEventListener('click', () => {
       this.hideActivityModal()
@@ -205,6 +215,49 @@ class HabitTracker {
     document.getElementById('activity-form')?.addEventListener('submit', (e) => {
       e.preventDefault()
       this.handleActivitySubmit(e.target)
+    })
+
+    // Activity type change listener
+    document.getElementById('activity-type')?.addEventListener('change', (e) => {
+      const abstinenceGroup = document.getElementById('abstinence-text-group')
+      const abstinenceInput = document.getElementById('activity-abstinence-text')
+      const editBtn = document.getElementById('edit-abstinence-text')
+
+      if (!abstinenceGroup) return
+
+      if (e.target.value === 'quit') {
+        abstinenceGroup.style.display = 'block'
+        abstinenceInput.value = ''
+        abstinenceInput.placeholder = this.userDefaultAbstinenceText || 'Abstinence time'
+        abstinenceInput.disabled = true
+        editBtn.classList.remove('active')
+      } else {
+        abstinenceGroup.style.display = 'none'
+      }
+    })
+
+    // Abstinence text edit button
+    document.getElementById('edit-abstinence-text')?.addEventListener('click', (e) => {
+      e.preventDefault()
+      const input = document.getElementById('activity-abstinence-text')
+      const btn = e.target
+
+      if (input.disabled) {
+        // Enable editing
+        input.disabled = false
+        input.focus()
+        btn.classList.add('active')
+        if (!input.value) {
+          input.placeholder = 'e.g., Clean for, Smoke-free for'
+        }
+      } else {
+        // Disable editing
+        input.disabled = true
+        btn.classList.remove('active')
+        if (!input.value) {
+          input.placeholder = 'Abstinence time'
+        }
+      }
     })
 
     // Tab switching
@@ -239,6 +292,130 @@ class HabitTracker {
 
     document.querySelector('.add-quit-btn')?.addEventListener('click', () => {
       this.showActivityModal(null, 'quit')
+    })
+
+    // Retroactive slip-up modal events
+    document.getElementById('close-slipup-modal')?.addEventListener('click', () => {
+      this.hideRetroactiveSlipupModal()
+    })
+
+    document.getElementById('cancel-slipup-modal')?.addEventListener('click', () => {
+      this.hideRetroactiveSlipupModal()
+    })
+
+    document.getElementById('slipup-modal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'slipup-modal') {
+        this.hideRetroactiveSlipupModal()
+      }
+    })
+
+    document.getElementById('slipup-form')?.addEventListener('submit', (e) => {
+      console.log('🔍 DEBUG: Form submit event triggered')
+      e.preventDefault()
+      this.handleRetroactiveSlipupSubmit(e.target)
+    })
+
+    // Day entries modal events
+    document.getElementById('close-day-entries')?.addEventListener('click', () => {
+      this.hideDayEntriesModal()
+    })
+
+    document.getElementById('day-entries-modal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'day-entries-modal') {
+        this.hideDayEntriesModal()
+      }
+    })
+
+    document.getElementById('add-new-entry-btn')?.addEventListener('click', () => {
+      const modal = document.getElementById('day-entries-modal')
+      if (modal) {
+        const date = modal.dataset.currentDate
+        const activityId = modal.dataset.activityId
+        this.hideDayEntriesModal()
+        this.showRetroactiveSlipupModal(activityId, date)
+      }
+    })
+
+    // Settings modal events
+    document.getElementById('close-settings')?.addEventListener('click', () => {
+      this.hideSettingsModal()
+    })
+
+    document.getElementById('settings-modal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'settings-modal') {
+        this.hideSettingsModal()
+      }
+    })
+
+    // Save default abstinence text
+    document.getElementById('save-abstinence-text')?.addEventListener('click', async () => {
+      const input = document.getElementById('default-abstinence-text')
+      const value = input.value.trim() || 'Abstinence time'
+
+      try {
+        await api.updatePreferences({ defaultAbstinenceText: value })
+        this.userDefaultAbstinenceText = value
+        this.showMessage('Default text saved successfully', 'success')
+
+        // Reload activities to show the new default text
+        await this.loadUserData()
+      } catch (error) {
+        console.error('Error saving default abstinence text:', error)
+        this.showMessage('Failed to save default text', 'error')
+      }
+    })
+
+    // Restore default abstinence text
+    document.getElementById('restore-abstinence-default')?.addEventListener('click', async () => {
+      try {
+        const response = await api.restoreDefaultPreferences()
+        const defaultText = response.preferences.default_abstinence_text
+
+        // Update the input field
+        const input = document.getElementById('default-abstinence-text')
+        if (input) {
+          input.value = defaultText
+        }
+
+        this.userDefaultAbstinenceText = defaultText
+        this.showMessage('Restored to system default: "' + defaultText + '"', 'success')
+
+        // Reload activities to show the restored default text
+        await this.loadUserData()
+      } catch (error) {
+        console.error('Error restoring default abstinence text:', error)
+        this.showMessage('Failed to restore default text', 'error')
+      }
+    })
+
+    // API key management
+    document.getElementById('create-api-key-btn')?.addEventListener('click', () => {
+      this.createApiKey()
+    })
+
+    document.getElementById('view-api-docs-btn')?.addEventListener('click', () => {
+      this.showApiDocs()
+    })
+
+    document.getElementById('close-api-key-modal')?.addEventListener('click', () => {
+      document.getElementById('api-key-modal').style.display = 'none'
+    })
+
+    document.getElementById('copy-api-key-btn')?.addEventListener('click', () => {
+      const keyValue = document.getElementById('api-key-value').textContent
+      navigator.clipboard.writeText(keyValue).then(() => {
+        this.showMessage('API key copied to clipboard', 'success')
+      })
+    })
+
+    document.getElementById('close-api-docs-modal')?.addEventListener('click', () => {
+      document.getElementById('api-docs-modal').style.display = 'none'
+    })
+
+    document.getElementById('api-docs-modal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'api-docs-modal') {
+        document.getElementById('api-docs-modal').style.display = 'none'
+      }
     })
 
     // Header menu functionality
@@ -438,7 +615,7 @@ class HabitTracker {
           <h2>${activity.name}</h2>
         </div>
         
-        ${activity.type === 'quit' ? this.renderProgressCircleWithGoalSelection(timeData, activity.color, activityId) : ''}
+        ${activity.type === 'quit' ? this.renderProgressCircleWithGoalSelection(timeData, activity.color, activityId, activity.abstinence_text) : ''}
         
         <div class="calendar-container">
           <div class="calendar-nav">
@@ -470,6 +647,9 @@ class HabitTracker {
 
     // Add goal selection listeners for calendar view
     this.addCalendarGoalListeners(tabContent)
+    
+    // Add calendar day listeners for slip-up logging
+    this.addCalendarDayListeners(tabContent)
   }
 
   updateFullScreenCalendar(container, date, events) {
@@ -481,6 +661,9 @@ class HabitTracker {
     const newCalendar = this.renderCalendar(date, events)
     const existingCalendar = calendarContainer.querySelector('.calendar-grid')
     existingCalendar.outerHTML = newCalendar
+    
+    // Re-add calendar day click listeners after updating calendar
+    this.addCalendarDayListeners(container)
   }
 
   returnToTabView() {
@@ -584,8 +767,9 @@ class HabitTracker {
     }
   }
 
-  renderProgressCircle(timeData, color) {
+  renderProgressCircle(timeData, color, abstinenceText) {
     const progressColor = color || '#ef4444'
+    const displayText = abstinenceText || 'Abstinence time'
     
     return `
       <div class="progress-section">
@@ -605,15 +789,16 @@ class HabitTracker {
           </div>
         </div>
         <div class="abstinence-time">
-          <div class="abstinence-label">Abstinence Time</div>
+          <div class="abstinence-label">${displayText}</div>
           <div class="time-display">${timeData.timeString}</div>
         </div>
       </div>
     `
   }
 
-  renderProgressCircleWithGoalSelection(timeData, color, activityId) {
+  renderProgressCircleWithGoalSelection(timeData, color, activityId, abstinenceText) {
     const progressColor = color || '#ef4444'
+    const displayText = abstinenceText || 'Abstinence time'
     
     return `
       <div class="progress-section">
@@ -644,7 +829,7 @@ class HabitTracker {
           </div>
         </div>
         <div class="abstinence-time">
-          <div class="abstinence-label">Abstinence Time</div>
+          <div class="abstinence-label">${displayText}</div>
           <div class="time-display">${timeData.timeString}</div>
         </div>
       </div>
@@ -662,18 +847,29 @@ class HabitTracker {
   renderCalendar(date, events) {
     const year = date.getFullYear()
     const month = date.getMonth()
-    
+
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
     const daysInMonth = lastDay.getDate()
     const startingDayOfWeek = firstDay.getDay()
-    
-    // Create event map for quick lookup
-    const eventDates = new Set()
+
+    // Create event map that counts events per date
+    const eventCounts = new Map()
+    const eventsByDate = new Map()
     events.forEach(event => {
       const eventDate = new Date(event.timestamp).toDateString()
-      eventDates.add(eventDate)
+      const count = eventCounts.get(eventDate) || 0
+      eventCounts.set(eventDate, count + 1)
+
+      // Store events by date for later retrieval
+      if (!eventsByDate.has(eventDate)) {
+        eventsByDate.set(eventDate, [])
+      }
+      eventsByDate.get(eventDate).push(event)
     })
+
+    // Store events map for later use
+    this.currentMonthEvents = eventsByDate
 
     let calendarHTML = `
       <div class="calendar-grid">
@@ -698,13 +894,31 @@ class HabitTracker {
     for (let day = 1; day <= daysInMonth; day++) {
       const currentDate = new Date(year, month, day)
       const dateString = currentDate.toDateString()
-      const hasEvent = eventDates.has(dateString)
+      const eventCount = eventCounts.get(dateString) || 0
       const isToday = dateString === new Date().toDateString()
-      
+
+      // Generate tally dots
+      let dotsHTML = ''
+      if (eventCount > 0) {
+        dotsHTML = '<div class="event-tally">'
+        if (eventCount <= 5) {
+          // Show red dots for 1-5 events
+          for (let i = 0; i < eventCount; i++) {
+            dotsHTML += '<span class="tally-dot red"></span>'
+          }
+        } else {
+          // Show orange dot for 5+ events with count
+          dotsHTML += `<span class="tally-dot orange" data-count="${eventCount}">${eventCount}</span>`
+        }
+        dotsHTML += '</div>'
+      }
+
       calendarHTML += `
-        <div class="calendar-day ${hasEvent ? 'has-event' : ''} ${isToday ? 'today' : ''}">
+        <div class="calendar-day ${eventCount > 0 ? 'has-event' : ''} ${isToday ? 'today' : ''} clickable-day"
+             data-date="${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}"
+             data-date-string="${dateString}">
           <span class="day-number">${day}</span>
-          ${hasEvent ? '<div class="event-marker"></div>' : ''}
+          ${dotsHTML}
         </div>
       `
     }
@@ -733,6 +947,9 @@ class HabitTracker {
     const modal = document.getElementById('activity-modal')
     const form = document.getElementById('activity-form')
     const title = document.getElementById('modal-title')
+    const abstinenceGroup = document.getElementById('abstinence-text-group')
+    const abstinenceInput = document.getElementById('activity-abstinence-text')
+    const editBtn = document.getElementById('edit-abstinence-text')
 
     if (activity) {
       title.textContent = 'Edit Activity'
@@ -741,12 +958,43 @@ class HabitTracker {
       form.elements.icon.value = activity.icon || ''
       form.elements.color.value = activity.color || '#6366f1'
       form.dataset.activityId = activity.id
+
+      // Show abstinence text field for quits
+      if (activity.type === 'quit') {
+        abstinenceGroup.style.display = 'block'
+        if (!activity.use_default_abstinence_text && activity.abstinence_text) {
+          // Using custom text
+          abstinenceInput.value = activity.abstinence_text
+          abstinenceInput.disabled = false
+          editBtn.classList.add('active')
+        } else {
+          // Using default
+          abstinenceInput.value = ''
+          abstinenceInput.placeholder = this.userDefaultAbstinenceText || 'Abstinence time'
+          abstinenceInput.disabled = true
+          editBtn.classList.remove('active')
+        }
+      } else {
+        abstinenceGroup.style.display = 'none'
+      }
     } else {
       title.textContent = 'Add Activity'
       form.reset()
       form.elements.color.value = '#6366f1'
       if (presetType) {
         form.elements.type.value = presetType
+        // Show abstinence field for new quits
+        if (presetType === 'quit') {
+          abstinenceGroup.style.display = 'block'
+          abstinenceInput.value = ''
+          abstinenceInput.placeholder = this.userDefaultAbstinenceText || 'Abstinence time'
+          abstinenceInput.disabled = true
+          editBtn.classList.remove('active')
+        } else {
+          abstinenceGroup.style.display = 'none'
+        }
+      } else {
+        abstinenceGroup.style.display = 'none'
       }
       delete form.dataset.activityId
     }
@@ -758,6 +1006,116 @@ class HabitTracker {
     document.getElementById('activity-modal').style.display = 'none'
   }
 
+  showRetroactiveSlipupModal(activityId, date) {
+    const modal = document.getElementById('slipup-modal')
+    const form = document.getElementById('slipup-form')
+    const dateInput = document.getElementById('slipup-date')
+    const timeInput = document.getElementById('slipup-time')
+    const title = document.getElementById('slipup-modal-title')
+    
+    if (!modal || !form) return
+    
+    // Get activity name for modal title
+    const activity = this.activities.find(a => a.id == activityId)
+    if (activity) {
+      title.textContent = `Log Slip-up - ${activity.name}`
+    }
+    
+    // Set the date (readonly)
+    dateInput.value = date
+    
+    // Set current time as default
+    const now = new Date()
+    timeInput.value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    
+    // Store activity ID on form
+    form.dataset.activityId = activityId
+    
+    // Show modal
+    modal.style.display = 'flex'
+    timeInput.focus()
+  }
+
+  hideRetroactiveSlipupModal() {
+    const modal = document.getElementById('slipup-modal')
+    const form = document.getElementById('slipup-form')
+    
+    if (modal && form) {
+      modal.style.display = 'none'
+      form.reset()
+      delete form.dataset.activityId
+    }
+  }
+
+  async handleRetroactiveSlipupSubmit(form) {
+    console.log('🔍 DEBUG: handleRetroactiveSlipupSubmit called')
+    
+    // Prevent multiple submissions
+    if (this.isSubmittingSlipup) {
+      console.log('🛑 DEBUG: Already submitting, preventing duplicate')
+      return
+    }
+    this.isSubmittingSlipup = true
+    
+    try {
+      const formData = new FormData(form)
+      const activityId = form.dataset.activityId
+      const date = formData.get('date')
+      const time = formData.get('time')
+      const notes = formData.get('notes') || ''
+      
+      console.log('📝 DEBUG: Form data:', { activityId, date, time, notes })
+      
+      // Create timestamp from date and time
+      const datetime = new Date(`${date}T${time}:00`)
+      const timestamp = datetime.toISOString()
+      
+      console.log('🚀 DEBUG: About to submit event with timestamp:', timestamp)
+      
+      // Log the slip-up event
+      await api.createEvent({
+        activity_id: activityId,
+        type: 'slipup',
+        timestamp: timestamp,
+        note: notes  // Backend expects 'note' not 'notes'
+      })
+      
+      console.log('✅ DEBUG: Event creation completed')
+
+      this.hideRetroactiveSlipupModal()
+      this.showMessage('Slip-up logged successfully', 'success')
+
+      // If we're in calendar view, just refresh the calendar without calling loadUserData
+      if (this.currentCalendarActivity == activityId) {
+        // Get events for the current month being displayed
+        const currentDate = new Date()
+        const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+        const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+
+        const eventsResponse = await api.getEventsInDateRange(
+          activityId,
+          startDate.toISOString().split('T')[0],
+          endDate.toISOString().split('T')[0]
+        )
+
+        const tabContent = document.querySelector('.fullscreen-calendar-view')
+        if (tabContent) {
+          this.updateFullScreenCalendar(tabContent, currentDate, eventsResponse.events || [])
+        }
+      } else {
+        // Only reload user data if we're not in calendar view
+        await this.loadUserData()
+      }
+
+    } catch (error) {
+      console.error('Error logging retroactive slip-up:', error)
+      this.showMessage('Failed to log slip-up', 'error')
+    } finally {
+      // Always reset the submission flag
+      this.isSubmittingSlipup = false
+    }
+  }
+
   async handleActivitySubmit(form) {
     try {
       const formData = new FormData(form)
@@ -766,6 +1124,18 @@ class HabitTracker {
         type: formData.get('type'),
         icon: formData.get('icon') || null,
         color: formData.get('color')
+      }
+
+      // Include abstinence text for quits
+      if (activityData.type === 'quit') {
+        const abstinenceInput = document.getElementById('activity-abstinence-text')
+        if (!abstinenceInput.disabled && abstinenceInput.value) {
+          // User has customized it for this specific activity
+          activityData.abstinenceText = abstinenceInput.value
+        } else {
+          // Using default - send empty to signal default usage
+          activityData.abstinenceText = ''
+        }
       }
 
       const activityId = form.dataset.activityId
@@ -837,6 +1207,16 @@ class HabitTracker {
 
   // Rendering methods
   renderActivities() {
+    // Skip rendering if we're not in the main app view (e.g., calendar view)
+    const habitsCount = document.getElementById('habits-count')
+    const quitsCount = document.getElementById('quits-count')
+    const logsCount = document.getElementById('logs-count')
+    
+    if (!habitsCount || !quitsCount || !logsCount) {
+      // We're probably in calendar view, skip main app rendering
+      return
+    }
+    
     // Load view preference
     this.currentView = localStorage.getItem('preferredView') || 'cards'
     
@@ -845,9 +1225,9 @@ class HabitTracker {
     const quits = this.activities.filter(activity => activity.type === 'quit')
 
     // Update tab counts
-    document.getElementById('habits-count').textContent = habits.length
-    document.getElementById('quits-count').textContent = quits.length
-    document.getElementById('logs-count').textContent = this.todayEvents.length
+    habitsCount.textContent = habits.length
+    quitsCount.textContent = quits.length
+    logsCount.textContent = this.todayEvents.length
 
     // Update view toggle buttons
     document.querySelectorAll('.view-toggle-btn').forEach(btn => {
@@ -877,28 +1257,32 @@ class HabitTracker {
     const noActivities = document.getElementById(`no-${type}`)
 
     if (activities.length === 0) {
-      gridContainer.style.display = 'none'
-      tableContainer.style.display = 'none'
-      noActivities.style.display = 'block'
+      if (gridContainer) gridContainer.style.display = 'none'
+      if (tableContainer) tableContainer.style.display = 'none'
+      if (noActivities) noActivities.style.display = 'block'
       return
     }
 
-    noActivities.style.display = 'none'
+    if (noActivities) noActivities.style.display = 'none'
 
     // Apply saved order before rendering
     const orderedActivities = this.applySavedOrder(type, activities)
 
     if (this.currentView === 'table') {
       // Show table view
-      gridContainer.style.display = 'none'
-      tableContainer.style.display = 'block'
-      this.renderActivityTable(tableContainer, orderedActivities)
+      if (gridContainer) gridContainer.style.display = 'none'
+      if (tableContainer) {
+        tableContainer.style.display = 'block'
+        this.renderActivityTable(tableContainer, orderedActivities)
+      }
     } else {
       // Show card view
-      gridContainer.style.display = 'grid'
-      tableContainer.style.display = 'none'
-      gridContainer.innerHTML = orderedActivities.map(activity => this.renderActivityCard(activity)).join('')
-      this.addActivityCardContainerListeners(gridContainer)
+      if (gridContainer) {
+        gridContainer.style.display = 'grid'
+        gridContainer.innerHTML = orderedActivities.map(activity => this.renderActivityCard(activity)).join('')
+        this.addActivityCardContainerListeners(gridContainer)
+      }
+      if (tableContainer) tableContainer.style.display = 'none'
     }
   }
 
@@ -1262,6 +1646,7 @@ class HabitTracker {
       })
     })
 
+
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.calendar-goal-dropdown') && !e.target.closest('.clickable-progress') && !e.target.closest('.clickable-goal')) {
@@ -1270,6 +1655,269 @@ class HabitTracker {
         })
       }
     })
+  }
+
+  addCalendarDayListeners(container) {
+    console.log('🔍 DEBUG: addCalendarDayListeners called')
+    // Calendar day click handlers for showing day entries
+    const clickableDays = container.querySelectorAll('.clickable-day')
+    console.log('🔍 DEBUG: Found', clickableDays.length, 'clickable days')
+
+    clickableDays.forEach((day, index) => {
+      // Since we replace the HTML in updateFullScreenCalendar, we always need to add listeners
+      // to the new elements.
+
+      // Add listener
+      day.addEventListener('click', (e) => {
+        e.stopPropagation()  // Prevent event bubbling
+        console.log('🔍 DEBUG: Calendar day clicked:', day.dataset.date, 'by listener', index)
+        const date = day.dataset.date
+        const dateString = day.dataset.dateString
+        const activityId = this.currentCalendarActivity
+        this.showDayEntriesModal(activityId, date, dateString)
+      })
+    })
+  }
+
+  showDayEntriesModal(activityId, date, dateString) {
+    const modal = document.getElementById('day-entries-modal')
+    const dateSpan = document.getElementById('day-entries-date')
+    const entriesList = document.getElementById('day-entries-list')
+
+    if (!modal) return
+
+    // Set the date in the title
+    const displayDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+    dateSpan.textContent = displayDate
+
+    // Get events for this date from our stored map
+    const events = this.currentMonthEvents?.get(dateString) || []
+
+    // Render the entries
+    if (events.length === 0) {
+      entriesList.innerHTML = '<div class="no-entries-message">No entries for this date. Click "Add New Entry" to log one.</div>'
+    } else {
+      entriesList.innerHTML = events.map(event => {
+        const eventTime = new Date(event.timestamp).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+        return `
+          <div class="day-entry-item" data-event-id="${event.id}">
+            <div>
+              <div class="day-entry-time">${eventTime}</div>
+              ${event.note ? `<div class="day-entry-note">${event.note}</div>` : ''}
+            </div>
+            <button class="day-entry-delete" data-event-id="${event.id}">Delete</button>
+          </div>
+        `
+      }).join('')
+    }
+
+    // Add delete button listeners
+    entriesList.querySelectorAll('.day-entry-delete').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation()
+        const eventId = btn.dataset.eventId
+        await this.handleDeleteEvent(eventId, activityId, date)
+      })
+    })
+
+    // Store current date and activityId for add new entry
+    modal.dataset.currentDate = date
+    modal.dataset.activityId = activityId
+    modal.dataset.dateString = dateString
+
+    // Show modal
+    modal.style.display = 'flex'
+  }
+
+  hideDayEntriesModal() {
+    const modal = document.getElementById('day-entries-modal')
+    if (modal) {
+      modal.style.display = 'none'
+      delete modal.dataset.currentDate
+      delete modal.dataset.activityId
+      delete modal.dataset.dateString
+    }
+  }
+
+  showSettingsModal() {
+    const modal = document.getElementById('settings-modal')
+    if (modal) {
+      // Hide the header dropdown first
+      const dropdown = document.getElementById('header-dropdown')
+      if (dropdown) dropdown.style.display = 'none'
+
+      // Load current user info
+      this.loadSettingsData()
+
+      // Show the modal
+      modal.style.display = 'flex'
+    }
+  }
+
+  hideSettingsModal() {
+    const modal = document.getElementById('settings-modal')
+    if (modal) {
+      modal.style.display = 'none'
+    }
+  }
+
+  async loadSettingsData() {
+    try {
+      // Get current user info
+      const response = await api.getCurrentUser()
+      if (response && response.user) {
+        const user = response.user
+
+        const usernameElement = document.getElementById('settings-username')
+        if (usernameElement) {
+          usernameElement.textContent = user.username
+        }
+
+        // Load default abstinence text
+        const abstinenceTextInput = document.getElementById('default-abstinence-text')
+        if (abstinenceTextInput) {
+          abstinenceTextInput.value = user.default_abstinence_text || 'Abstinence time'
+        }
+
+        // Store for later use
+        this.userDefaultAbstinenceText = user.default_abstinence_text || 'Abstinence time'
+      }
+
+      // Load API keys
+      await this.loadApiKeys()
+    } catch (error) {
+      console.error('Error loading settings data:', error)
+    }
+  }
+
+  async loadApiKeys() {
+    try {
+      const response = await api.getApiKeys()
+      const keysListElement = document.getElementById('api-keys-list')
+
+      if (!keysListElement) return
+
+      if (response.keys && response.keys.length > 0) {
+        keysListElement.innerHTML = response.keys.map(key => `
+          <div class="api-key-item">
+            <div class="api-key-info">
+              <div class="api-key-name">${key.name}</div>
+              <div class="api-key-date">
+                Created: ${new Date(key.created_at).toLocaleDateString()}
+                ${key.last_used ? ` • Last used: ${new Date(key.last_used).toLocaleDateString()}` : ''}
+              </div>
+            </div>
+            <button class="btn btn-danger btn-sm delete-api-key" data-key-id="${key.id}">Delete</button>
+          </div>
+        `).join('')
+
+        // Add delete event listeners
+        keysListElement.querySelectorAll('.delete-api-key').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            if (confirm('Are you sure you want to delete this API key?')) {
+              await this.deleteApiKey(e.target.dataset.keyId)
+            }
+          })
+        })
+      } else {
+        keysListElement.innerHTML = '<p style="color: #6c757d; padding: 10px;">No API keys yet</p>'
+      }
+    } catch (error) {
+      console.error('Error loading API keys:', error)
+    }
+  }
+
+  async createApiKey() {
+    const name = prompt('Enter a name for this API key:')
+    if (!name) return
+
+    try {
+      const response = await api.createApiKey(name)
+
+      if (response.apiKey) {
+        // Show the key in a modal
+        const modal = document.getElementById('api-key-modal')
+        const keyValue = document.getElementById('api-key-value')
+
+        if (modal && keyValue) {
+          keyValue.textContent = response.apiKey.apiKey
+          modal.style.display = 'flex'
+        }
+
+        // Reload the API keys list
+        await this.loadApiKeys()
+      }
+    } catch (error) {
+      console.error('Error creating API key:', error)
+      this.showMessage('Failed to create API key', 'error')
+    }
+  }
+
+  async deleteApiKey(keyId) {
+    try {
+      await api.deleteApiKey(keyId)
+      await this.loadApiKeys()
+      this.showMessage('API key deleted successfully', 'success')
+    } catch (error) {
+      console.error('Error deleting API key:', error)
+      this.showMessage('Failed to delete API key', 'error')
+    }
+  }
+
+  showApiDocs() {
+    const modal = document.getElementById('api-docs-modal')
+    const baseUrlElement = document.getElementById('api-base-url')
+
+    if (modal && baseUrlElement) {
+      // Set the base URL to the current site
+      baseUrlElement.textContent = window.location.origin
+
+      // Show the modal
+      modal.style.display = 'flex'
+    }
+  }
+
+  async handleDeleteEvent(eventId, activityId, date) {
+    if (!confirm('Are you sure you want to delete this entry?')) return
+
+    try {
+      await api.deleteEvent(eventId)
+      this.showMessage('Entry deleted successfully', 'success')
+
+      // Refresh the calendar
+      const currentDate = new Date()
+      const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+      const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+
+      const eventsResponse = await api.getEventsInDateRange(
+        activityId,
+        startDate.toISOString().split('T')[0],
+        endDate.toISOString().split('T')[0]
+      )
+
+      const tabContent = document.querySelector('.fullscreen-calendar-view')
+      if (tabContent) {
+        this.updateFullScreenCalendar(tabContent, currentDate, eventsResponse.events || [])
+      }
+
+      // Refresh the day entries modal
+      const modal = document.getElementById('day-entries-modal')
+      if (modal && modal.style.display !== 'none') {
+        const dateString = modal.dataset.dateString
+        this.showDayEntriesModal(activityId, date, dateString)
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error)
+      this.showMessage('Failed to delete entry', 'error')
+    }
   }
 
   toggleCalendarGoalDropdown(activityId) {
@@ -1533,7 +2181,7 @@ class HabitTracker {
           </div>
         </div>
         
-        ${activity.type === 'quit' ? this.renderQuitDisplay(timeData, activity.color, activity.id, activity.icon) : this.renderHabitDisplay(stats)}
+        ${activity.type === 'quit' ? this.renderQuitDisplay(timeData, activity.color, activity.id, activity.icon, activity.abstinence_text) : this.renderHabitDisplay(stats)}
 
         ${activity.type === 'habit' ? `
           <div class="habit-actions">
@@ -1643,15 +2291,16 @@ class HabitTracker {
     }
   }
 
-  renderQuitDisplay(timeData, color, activityId, icon) {
+  renderQuitDisplay(timeData, color, activityId, icon, abstinenceText) {
     const progressColor = color || '#ef4444'
     const buttonIcon = icon || '⚠️'
-    
+    const displayText = abstinenceText || 'Abstinence time'
+
     return `
       <div class="quit-display-modern">
         <div class="quit-content">
           <div class="quit-left">
-            <div class="abstinence-label">Abstinence Time</div>
+            <div class="abstinence-label">${displayText}</div>
             <div class="time-display-large">${timeData.timeString}</div>
             <div class="slipped-up-container">
               <button class="btn slipped-up-btn" data-activity-id="${activityId}">
@@ -1736,6 +2385,9 @@ class HabitTracker {
 
   renderTodayEvents() {
     const container = document.getElementById('today-events')
+    
+    // Skip rendering if container doesn't exist (e.g., in calendar view)
+    if (!container) return
     
     if (this.todayEvents.length === 0) {
       container.innerHTML = '<p style="color: #666;">No events logged today yet.</p>'

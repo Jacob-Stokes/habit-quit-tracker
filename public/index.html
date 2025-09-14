@@ -83,6 +83,9 @@
                             <button class="header-menu-item" id="add-activity-btn">
                                 ➕ Add Activity
                             </button>
+                            <button class="header-menu-item" id="settings-btn">
+                                ⚙️ Settings
+                            </button>
                             <button class="header-menu-item" id="logout-btn">
                                 🚪 Logout
                             </button>
@@ -196,11 +199,253 @@
                         <label for="activity-color">Color</label>
                         <input type="color" id="activity-color" name="color" value="#6366f1">
                     </div>
+                    <div class="input-group" id="abstinence-text-group" style="display: none;">
+                        <label for="activity-abstinence-text">
+                            Custom Time Label
+                            <span class="label-hint">(e.g., "Clean for", "Smoke-free for")</span>
+                        </label>
+                        <div class="input-with-edit">
+                            <input type="text" id="activity-abstinence-text" name="abstinenceText"
+                                   placeholder="Abstinence time" disabled>
+                            <button type="button" id="edit-abstinence-text" class="edit-btn" title="Edit custom text">✏️</button>
+                        </div>
+                    </div>
                     <div class="modal-actions">
                         <button type="button" id="cancel-modal" class="btn btn-secondary">Cancel</button>
                         <button type="submit" class="btn btn-primary">Save Activity</button>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Retroactive Slip-up Modal -->
+        <div id="slipup-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="slipup-modal-title">Log Slip-up</h3>
+                    <button type="button" id="close-slipup-modal" class="close-btn">&times;</button>
+                </div>
+                <form id="slipup-form">
+                    <div class="input-group">
+                        <label for="slipup-date">Date</label>
+                        <input type="date" id="slipup-date" name="date" required readonly>
+                    </div>
+                    <div class="input-group">
+                        <label for="slipup-time">Time</label>
+                        <input type="time" id="slipup-time" name="time" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="slipup-notes">Notes (optional)</label>
+                        <textarea id="slipup-notes" name="notes" placeholder="What happened? How are you feeling?" rows="3"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" id="cancel-slipup-modal" class="btn btn-secondary">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Log Slip-up</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Day Entries Modal -->
+        <div id="day-entries-modal" class="modal" style="display: none;">
+            <div class="modal-content day-entries-modal">
+                <div class="day-entries-header">
+                    <h3 id="day-entries-title">Entries for <span id="day-entries-date"></span></h3>
+                    <button type="button" id="close-day-entries" class="close-btn">&times;</button>
+                </div>
+                <div id="day-entries-list" class="day-entries-list">
+                    <!-- Entries will be populated here -->
+                </div>
+                <div class="day-entries-footer">
+                    <button type="button" id="add-new-entry-btn" class="add-new-entry-btn">Add New Entry</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Key Display Modal -->
+        <div id="api-key-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>New API Key Generated</h3>
+                    <button type="button" id="close-api-key-modal" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <p class="warning-message">⚠️ Save this key now! It will only be shown once.</p>
+                    <div class="api-key-display">
+                        <code id="api-key-value"></code>
+                        <button class="btn btn-secondary" id="copy-api-key-btn">Copy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Documentation Modal -->
+        <div id="api-docs-modal" class="modal" style="display: none;">
+            <div class="modal-content api-docs-content">
+                <div class="modal-header">
+                    <h3>API Documentation</h3>
+                    <button type="button" id="close-api-docs-modal" class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body api-docs-body">
+                    <h4>Authentication</h4>
+                    <p>Include your API key in the request headers:</p>
+                    <pre><code>X-API-Key: hqt_your_api_key_here</code></pre>
+                    <p>Or use Authorization header:</p>
+                    <pre><code>Authorization: Bearer hqt_your_api_key_here</code></pre>
+
+                    <h4>Base URL</h4>
+                    <pre><code id="api-base-url"></code></pre>
+
+                    <h4>Endpoints</h4>
+
+                    <div class="api-endpoint">
+                        <h5>Get Activities</h5>
+                        <code>GET /api/activities</code>
+                        <p>Returns all your habits and quits</p>
+                    </div>
+
+                    <div class="api-endpoint">
+                        <h5>Create Activity</h5>
+                        <code>POST /api/activities</code>
+                        <pre><code>{
+  "name": "Drink Water",
+  "type": "habit",
+  "color": "#6366f1",
+  "icon": "💧"
+}</code></pre>
+                    </div>
+
+                    <div class="api-endpoint">
+                        <h5>Log Event</h5>
+                        <code>POST /api/events</code>
+                        <pre><code>{
+  "activity_id": "activity-uuid",
+  "note": "Optional note",
+  "timestamp": "2024-01-01T12:00:00Z"
+}</code></pre>
+                    </div>
+
+                    <div class="api-endpoint">
+                        <h5>Get Events</h5>
+                        <code>GET /api/events?activity_id=uuid</code>
+                        <p>Query parameters: activity_id, limit, offset, today</p>
+                    </div>
+
+                    <div class="api-endpoint">
+                        <h5>Delete Event</h5>
+                        <code>DELETE /api/events/:id</code>
+                    </div>
+
+                    <h4>Example with curl</h4>
+                    <pre><code>curl -H "X-API-Key: hqt_your_key" \
+     https://yoursite.com/api/activities</code></pre>
+
+                    <h4>Example with JavaScript</h4>
+                    <pre><code>fetch('https://yoursite.com/api/activities', {
+  headers: {
+    'X-API-Key': 'hqt_your_key',
+    'Content-Type': 'application/json'
+  }
+})
+.then(res => res.json())
+.then(data => console.log(data))</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="settings-modal" style="display: none;">
+            <div class="settings-modal-content">
+                <div class="settings-header">
+                    <h2>Settings</h2>
+                    <button id="close-settings" class="settings-close-btn">&times;</button>
+                </div>
+                <div class="settings-body">
+                    <div class="settings-section">
+                        <h3>Account</h3>
+                        <div class="settings-item">
+                            <label>Username</label>
+                            <div class="settings-value" id="settings-username">Loading...</div>
+                        </div>
+                        <div class="settings-item">
+                            <label>Change Password</label>
+                            <button class="btn btn-secondary" id="change-password-btn">Change Password</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Preferences</h3>
+                        <div class="settings-item">
+                            <label>Default Abstinence Text
+                                <span class="label-hint">Used for all new quit activities</span>
+                            </label>
+                            <div class="settings-input-group">
+                                <input type="text" id="default-abstinence-text" class="settings-input" placeholder="e.g., Clean for, Sober for">
+                                <button class="btn btn-primary btn-sm" id="save-abstinence-text">Save</button>
+                                <button class="btn btn-secondary btn-sm" id="restore-abstinence-default" title="Restore to system default">Restore Default</button>
+                            </div>
+                        </div>
+                        <div class="settings-item">
+                            <label>Theme</label>
+                            <select id="theme-select" class="settings-select">
+                                <option value="light">Light</option>
+                                <option value="dark">Dark (Coming Soon)</option>
+                            </select>
+                        </div>
+                        <div class="settings-item">
+                            <label>Time Zone</label>
+                            <select id="timezone-select" class="settings-select">
+                                <option value="auto">Auto-detect</option>
+                                <option value="UTC">UTC</option>
+                                <option value="America/New_York">Eastern Time</option>
+                                <option value="America/Chicago">Central Time</option>
+                                <option value="America/Denver">Mountain Time</option>
+                                <option value="America/Los_Angeles">Pacific Time</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>API Access</h3>
+                        <div class="settings-item">
+                            <label>API Keys</label>
+                            <button class="btn btn-primary" id="create-api-key-btn">Generate New API Key</button>
+                        </div>
+                        <div id="api-keys-list" class="api-keys-list">
+                            <!-- API keys will be loaded here -->
+                        </div>
+                        <div class="settings-item">
+                            <label>Documentation</label>
+                            <button class="btn btn-secondary" id="view-api-docs-btn">View API Documentation</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>Data Management</h3>
+                        <div class="settings-item">
+                            <label>Export Data</label>
+                            <button class="btn btn-secondary" id="export-data-btn">Export to JSON</button>
+                        </div>
+                        <div class="settings-item">
+                            <label>Delete All Data</label>
+                            <button class="btn btn-danger" id="delete-all-data-btn">Delete Everything</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3>About</h3>
+                        <div class="settings-item">
+                            <label>Version</label>
+                            <div class="settings-value">1.0.0</div>
+                        </div>
+                        <div class="settings-item">
+                            <label>Source Code</label>
+                            <div class="settings-value">
+                                <a href="https://github.com/yourusername/habit-tracker" target="_blank">View on GitHub</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

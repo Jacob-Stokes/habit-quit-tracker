@@ -1,5 +1,6 @@
 import express from 'express'
 import User from '../models/User.js'
+import database from '../config/database.js'
 import { requireAuth, requireGuest } from '../middleware/auth.js'
 
 const router = express.Router()
@@ -127,7 +128,7 @@ router.post('/logout', requireAuth, (req, res) => {
 router.get('/me', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.userId)
-    
+
     if (!user) {
       return res.status(404).json({
         error: 'User not found',
@@ -147,12 +148,61 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 })
 
+// Update user preferences
+router.put('/preferences', requireAuth, async (req, res) => {
+  try {
+    const { defaultAbstinenceText } = req.body
+
+    if (defaultAbstinenceText !== undefined) {
+      await User.updatePreferences(req.userId, { defaultAbstinenceText })
+    }
+
+    res.json({
+      message: 'Preferences updated successfully'
+    })
+  } catch (error) {
+    console.error('Update preferences error:', error)
+    res.status(500).json({
+      error: 'Failed to update preferences',
+      message: 'Internal server error'
+    })
+  }
+})
+
 // Check authentication status
 router.get('/status', (req, res) => {
   res.json({
     authenticated: !!(req.session && req.session.userId),
     userId: req.session?.userId || null
   })
+})
+
+// Restore default preferences from system defaults
+router.post('/preferences/restore-defaults', requireAuth, async (req, res) => {
+  try {
+    // Get system default from database
+    const defaultRow = await database.get(
+      'SELECT value FROM system_defaults WHERE key = ?',
+      ['default_abstinence_text']
+    )
+
+    const defaultValue = defaultRow?.value || 'Abstinence time'
+
+    await User.updatePreferences(req.userId, { defaultAbstinenceText: defaultValue })
+
+    res.json({
+      message: 'Defaults restored successfully',
+      preferences: {
+        default_abstinence_text: defaultValue
+      }
+    })
+  } catch (error) {
+    console.error('Restore defaults error:', error)
+    res.status(500).json({
+      error: 'Failed to restore defaults',
+      message: 'Internal server error'
+    })
+  }
 })
 
 export default router

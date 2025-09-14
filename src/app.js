@@ -16,6 +16,7 @@ import database from './config/database.js'
 import authRoutes from './routes/auth.js'
 import activityRoutes from './routes/activities.js'
 import eventRoutes from './routes/events.js'
+import apiKeyRoutes from './routes/apikeys.js'
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url)
@@ -71,6 +72,7 @@ app.use(express.static(path.join(__dirname, '../public')))
 app.use('/api/auth', authRoutes)
 app.use('/api/activities', activityRoutes)
 app.use('/api/events', eventRoutes)
+app.use('/api/apikeys', apiKeyRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -108,7 +110,7 @@ app.use('/api', (req, res) => {
 const startServer = async () => {
   try {
     await database.connect()
-    
+
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`)
       console.log(`🌐 Network access: http://192.168.0.231:${PORT}`)

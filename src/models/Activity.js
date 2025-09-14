@@ -13,26 +13,32 @@ class Activity {
     this.archived = data.archived
     this.selected_goal_name = data.selected_goal_name
     this.selected_goal_hours = data.selected_goal_hours
+    this.abstinence_text = data.abstinence_text
+    this.use_default_abstinence_text = data.use_default_abstinence_text !== 0
   }
 
   // Create a new activity
   static async create(userId, activityData) {
-    const { name, type, color = '#6366f1', icon = null } = activityData
-    
+    const { name, type, color = '#6366f1', icon = null, abstinenceText = null, useDefaultAbstinence = true } = activityData
+
     // Validation
     if (!name || !type) {
       throw new Error('Name and type are required')
     }
-    
+
     if (!['habit', 'quit'].includes(type)) {
       throw new Error('Type must be either "habit" or "quit"')
     }
 
     const id = uuidv4()
 
+    // Only store custom text if not using default
+    const textToStore = useDefaultAbstinence ? null : abstinenceText
+    const useDefault = type === 'quit' ? (useDefaultAbstinence ? 1 : 0) : 1
+
     await database.run(
-      'INSERT INTO activities (id, user_id, name, type, color, icon) VALUES (?, ?, ?, ?, ?, ?)',
-      [id, userId, name, type, color, icon]
+      'INSERT INTO activities (id, user_id, name, type, color, icon, abstinence_text, use_default_abstinence_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, userId, name, type, color, icon, textToStore, useDefault]
     )
 
     return await Activity.findById(id)
@@ -103,6 +109,18 @@ class Activity {
     const allowedFields = ['name', 'type', 'color', 'icon', 'selected_goal_name', 'selected_goal_hours']
     const updates = []
     const values = []
+
+    // Handle abstinence text separately to manage the flag
+    if (data.abstinence_text !== undefined || data.use_default_abstinence_text !== undefined) {
+      if (data.use_default_abstinence_text) {
+        updates.push('abstinence_text = NULL')
+        updates.push('use_default_abstinence_text = 1')
+      } else if (data.abstinence_text !== undefined) {
+        updates.push('abstinence_text = ?')
+        values.push(data.abstinence_text)
+        updates.push('use_default_abstinence_text = 0')
+      }
+    }
 
     for (const field of allowedFields) {
       if (data[field] !== undefined) {
@@ -255,7 +273,9 @@ class Activity {
       created_at: this.created_at,
       archived: this.archived,
       selected_goal_name: this.selected_goal_name,
-      selected_goal_hours: this.selected_goal_hours
+      selected_goal_hours: this.selected_goal_hours,
+      abstinence_text: this.abstinence_text,
+      use_default_abstinence_text: this.use_default_abstinence_text
     }
   }
 }

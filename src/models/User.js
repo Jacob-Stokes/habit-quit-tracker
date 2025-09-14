@@ -7,6 +7,7 @@ class User {
     this.id = data.id
     this.username = data.username
     this.password_hash = data.password_hash
+    this.default_abstinence_text = data.default_abstinence_text || 'Abstinence time'
     this.created_at = data.created_at
   }
 
@@ -63,8 +64,23 @@ class User {
     return {
       id: this.id,
       username: this.username,
+      default_abstinence_text: this.default_abstinence_text,
       created_at: this.created_at
     }
+  }
+
+  // Update user preferences
+  static async updatePreferences(userId, preferences) {
+    const { defaultAbstinenceText } = preferences
+
+    if (defaultAbstinenceText !== undefined) {
+      await database.run(
+        'UPDATE users SET default_abstinence_text = ? WHERE id = ?',
+        [defaultAbstinenceText, userId]
+      )
+    }
+
+    return true
   }
 
   // Update user

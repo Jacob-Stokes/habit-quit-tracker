@@ -161,6 +161,38 @@ class API {
   async healthCheck() {
     return this.request('/health')
   }
+
+  // API Key methods
+  async getApiKeys() {
+    return this.request('/apikeys')
+  }
+
+  async createApiKey(name) {
+    return this.request('/apikeys', {
+      method: 'POST',
+      body: { name }
+    })
+  }
+
+  async deleteApiKey(keyId) {
+    return this.request(`/apikeys/${keyId}`, {
+      method: 'DELETE'
+    })
+  }
+
+  // User preferences
+  async updatePreferences(preferences) {
+    return this.request('/auth/preferences', {
+      method: 'PUT',
+      body: preferences
+    })
+  }
+
+  async restoreDefaultPreferences() {
+    return this.request('/auth/preferences/restore-defaults', {
+      method: 'POST'
+    })
+  }
 }
 
 // Create a global API instance
