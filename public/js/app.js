@@ -3056,13 +3056,14 @@ class HabitTracker {
 
     const now = new Date()
     const diffMs = now - startDate
-    
+
     // Convert to different units
     const totalSeconds = Math.floor(diffMs / 1000)
     const totalMinutes = Math.floor(totalSeconds / 60)
-    const totalHours = Math.floor(totalMinutes / 60)
+    const totalHoursExact = totalMinutes / 60  // Keep fractional hours for accurate progress
+    const totalHours = Math.floor(totalHoursExact)
     const totalDays = Math.floor(totalHours / 24)
-    
+
     const days = totalDays
     const hours = totalHours % 24
     const minutes = totalMinutes % 60
@@ -3098,12 +3099,12 @@ class HabitTracker {
     let currentGoal = goals[0] // Default to first goal (24 Hours)
     let progressPercent = 0
 
-    // Find the appropriate goal based on current progress
+    // Find the appropriate goal based on current progress (use exact hours for accuracy)
     for (let i = 0; i < goals.length; i++) {
       const goal = goals[i]
-      if (totalHours < goal.hours) {
+      if (totalHoursExact < goal.hours) {
         currentGoal = goal
-        progressPercent = (totalHours / goal.hours) * 100
+        progressPercent = (totalHoursExact / goal.hours) * 100
         break
       } else if (i === goals.length - 1) {
         // Achieved the highest goal
@@ -3116,8 +3117,8 @@ class HabitTracker {
       timeString,
       progressPercent: Math.min(progressPercent, 100),
       currentGoal: currentGoal.name,
-      hasProgress: totalHours > 0,
-      totalHours,
+      hasProgress: totalHoursExact > 0,
+      totalHours: totalHoursExact,  // Return the exact hours for other calculations
       days,
       hours,
       minutes,
