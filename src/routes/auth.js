@@ -1,5 +1,6 @@
 import express from 'express'
 import User from '../models/User.js'
+import SystemSettings from '../models/SystemSettings.js'
 import database from '../config/database.js'
 import { requireAuth, requireGuest } from '../middleware/auth.js'
 
@@ -8,6 +9,15 @@ const router = express.Router()
 // Register new user
 router.post('/register', requireGuest, async (req, res) => {
   try {
+    // Check if signup is disabled
+    const signupDisabled = await SystemSettings.isSignupDisabled()
+    if (signupDisabled) {
+      return res.status(403).json({
+        error: 'Registration disabled',
+        message: 'New user registration is currently disabled'
+      })
+    }
+
     const { username, password } = req.body
 
     // Validation

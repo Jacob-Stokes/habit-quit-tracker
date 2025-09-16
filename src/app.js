@@ -19,6 +19,7 @@ import activityRoutes from './routes/activities.js'
 import eventRoutes from './routes/events.js'
 import apiKeyRoutes from './routes/apikeys.js'
 import themeRoutes from './routes/themes.js'
+import systemRoutes from './routes/system.js'
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url)
@@ -76,6 +77,7 @@ app.use('/api/activities', activityRoutes)
 app.use('/api/events', eventRoutes)
 app.use('/api/apikeys', apiKeyRoutes)
 app.use('/api/themes', themeRoutes)
+app.use('/api/system', systemRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -29,10 +29,14 @@ class HabitTracker {
         this.showMainApp()
       } else {
         this.showAuthForms()
+        // Check if signup is disabled
+        await this.checkSignupStatus()
       }
     } catch (error) {
       console.error('Initialization error:', error)
       this.showAuthForms()
+      // Check signup status even on error
+      await this.checkSignupStatus()
     } finally {
       this.hideLoading()
     }
@@ -41,6 +45,28 @@ class HabitTracker {
     
     // Initialize view state
     this.currentView = 'cards'
+  }
+
+  async checkSignupStatus() {
+    try {
+      const response = await api.getSignupStatus()
+      const registerLink = document.getElementById('show-register')
+
+      if (response && response.signupDisabled) {
+        // Hide registration option if signup is disabled
+        if (registerLink && registerLink.parentElement) {
+          registerLink.parentElement.style.display = 'none'
+        }
+      } else {
+        // Show registration option if signup is enabled
+        if (registerLink && registerLink.parentElement) {
+          registerLink.parentElement.style.display = 'block'
+        }
+      }
+    } catch (error) {
+      console.error('Error checking signup status:', error)
+      // Default to showing registration on error
+    }
   }
 
   async loadUserData() {
@@ -588,6 +614,21 @@ class HabitTracker {
     document.getElementById('api-docs-modal')?.addEventListener('click', (e) => {
       if (e.target.id === 'api-docs-modal') {
         document.getElementById('api-docs-modal').style.display = 'none'
+      }
+    })
+
+    // Admin settings - disable signup checkbox
+    document.getElementById('disable-signup')?.addEventListener('change', async (e) => {
+      const isDisabled = e.target.checked
+
+      try {
+        await api.updateSystemSetting('signup_disabled', isDisabled.toString())
+        this.showMessage(`Signup ${isDisabled ? 'disabled' : 'enabled'} successfully`, 'success')
+      } catch (error) {
+        console.error('Error updating signup setting:', error)
+        this.showMessage('Failed to update signup setting', 'error')
+        // Revert checkbox on error
+        e.target.checked = !isDisabled
       }
     })
 
@@ -2521,6 +2562,27 @@ class HabitTracker {
 
         // Store for later use
         this.userDefaultAbstinenceText = user.default_abstinence_text || 'Abstinence time'
+
+        // Show admin settings if user is admin
+        if (user.is_admin) {
+          const adminSection = document.getElementById('admin-settings-section')
+          if (adminSection) {
+            adminSection.style.display = 'block'
+          }
+
+          // Load system settings
+          try {
+            const settingsResponse = await api.getSystemSettings()
+            if (settingsResponse && settingsResponse.settings) {
+              const signupCheckbox = document.getElementById('disable-signup')
+              if (signupCheckbox) {
+                signupCheckbox.checked = settingsResponse.settings.signup_disabled === 'true'
+              }
+            }
+          } catch (error) {
+            console.error('Error loading system settings:', error)
+          }
+        }
       }
 
       // Load API keys

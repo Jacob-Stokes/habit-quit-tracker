@@ -14,6 +14,7 @@ class User {
     this.custom_title = data.custom_title || 'Habit Tracker'
     this.show_title_section = data.show_title_section !== 0
     this.selected_theme = data.selected_theme || 'light'
+    this.is_admin = data.is_admin === 1 || data.is_admin === true
     this.created_at = data.created_at
   }
 
@@ -77,6 +78,7 @@ class User {
       custom_title: this.custom_title,
       show_title_section: this.show_title_section,
       selected_theme: this.selected_theme,
+      is_admin: this.is_admin,
       created_at: this.created_at
     }
   }

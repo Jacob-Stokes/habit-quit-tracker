@@ -225,6 +225,22 @@ class API {
       body: { themeName }
     })
   }
+
+  // System settings methods
+  async getSystemSettings() {
+    return this.request('/system/settings')
+  }
+
+  async updateSystemSetting(key, value) {
+    return this.request(`/system/settings/${key}`, {
+      method: 'PUT',
+      body: { value }
+    })
+  }
+
+  async getSignupStatus() {
+    return this.request('/system/signup-status')
+  }
 }
 
 // Create a global API instance
