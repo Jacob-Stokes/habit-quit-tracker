@@ -1837,12 +1837,22 @@ class HabitTracker {
 
   setupDragAndDrop(container) {
     const cards = container.querySelectorAll('.activity-card')
-    const touchState = {
-      pointerId: null,
-      draggedCard: null,
-      lastTarget: null,
-      originalTouchAction: null
+
+    // Store touch state at container level to avoid conflicts
+    if (!container._dragState) {
+      container._dragState = {
+        pointerId: null,
+        draggedCard: null,
+        lastTarget: null,
+        originalTouchAction: null,
+        initialX: 0,
+        initialY: 0,
+        currentX: 0,
+        currentY: 0,
+        clone: null
+      }
     }
+    const touchState = container._dragState
 
     const cleanupTouchDrag = () => {
       if (!touchState.draggedCard) return
@@ -1857,7 +1867,13 @@ class HabitTracker {
         }
       }
 
+      // Remove clone if it exists
+      if (touchState.clone && touchState.clone.parentNode) {
+        touchState.clone.parentNode.removeChild(touchState.clone)
+      }
+
       activeCard.classList.remove('dragging')
+      activeCard.style.pointerEvents = ''
       if (touchState.originalTouchAction !== null) {
         activeCard.style.touchAction = touchState.originalTouchAction
       } else {
@@ -1870,6 +1886,7 @@ class HabitTracker {
       touchState.draggedCard = null
       touchState.lastTarget = null
       touchState.originalTouchAction = null
+      touchState.clone = null
     }
     
     cards.forEach(card => {
@@ -1918,106 +1935,121 @@ class HabitTracker {
         card.classList.remove('drag-over')
       })
 
+      // Use touch events for mobile (more reliable than pointer events on some devices)
+      const handleTouchStart = (e) => {
+        // Only handle single touch
+        if (!e.touches || e.touches.length !== 1) return
+
+        // Prevent if already dragging
+        if (touchState.draggedCard) return
+
+        const touch = e.touches[0]
+        e.preventDefault()
+
+        touchState.pointerId = touch.identifier
+        touchState.draggedCard = card
+        touchState.lastTarget = null
+        touchState.initialX = touch.clientX
+        touchState.initialY = touch.clientY
+        touchState.originalTouchAction = card.style.touchAction || null
+
+        // Disable touch scrolling and make element "invisible" to touch events
+        card.style.touchAction = 'none'
+        card.style.pointerEvents = 'none'
+        card.classList.add('dragging')
+        container.classList.add('dragging')
+        container.querySelectorAll('.activity-card').forEach(c => c.classList.remove('drag-over'))
+      }
+
+      const handleTouchMove = (e) => {
+        if (!touchState.draggedCard || touchState.draggedCard !== card) return
+
+        const touch = Array.from(e.touches || []).find(t => t.identifier === touchState.pointerId)
+        if (!touch) return
+
+        e.preventDefault()
+        e.stopPropagation()
+
+        // Hide the dragged element temporarily to find what's underneath
+        touchState.draggedCard.style.visibility = 'hidden'
+        const targetElement = document.elementFromPoint(touch.clientX, touch.clientY)
+        touchState.draggedCard.style.visibility = ''
+
+        if (!targetElement) return
+
+        const targetCard = targetElement.closest('.activity-card')
+        if (!targetCard || targetCard === touchState.draggedCard || targetCard.parentElement !== container) return
+
+        if (touchState.lastTarget !== targetCard) {
+          this.reorderCards(container, touchState.draggedCard, targetCard)
+          touchState.lastTarget = targetCard
+        }
+      }
+
+      const handleTouchEnd = (e) => {
+        if (!touchState.draggedCard || touchState.draggedCard !== card) return
+
+        // Check if this touch is ending
+        const remainingTouch = Array.from(e.touches || []).find(t => t.identifier === touchState.pointerId)
+        if (remainingTouch) return
+
+        e.preventDefault()
+        cleanupTouchDrag()
+      }
+
+      // Add touch listeners
+      card.addEventListener('touchstart', handleTouchStart, { passive: false })
+      card.addEventListener('touchmove', handleTouchMove, { passive: false })
+      card.addEventListener('touchend', handleTouchEnd, { passive: false })
+      card.addEventListener('touchcancel', handleTouchEnd, { passive: false })
+
+      // Also support pointer events for devices that use them
       if (typeof window !== 'undefined' && window.PointerEvent) {
         const handlePointerDown = (e) => {
           if (e.pointerType !== 'touch') return
 
-          e.preventDefault()
-          touchState.pointerId = e.pointerId
-          touchState.draggedCard = card
-          touchState.lastTarget = null
-          touchState.originalTouchAction = card.style.touchAction || null
-          card.style.touchAction = 'none'
-          card.classList.add('dragging')
-          container.classList.add('dragging')
-          container.querySelectorAll('.activity-card').forEach(c => c.classList.remove('drag-over'))
-
-          if (typeof card.setPointerCapture === 'function') {
-            try {
-              card.setPointerCapture(e.pointerId)
-            } catch (err) {
-              // Ignore capture failures so drag continues gracefully
-            }
+          // Convert to touch-like event and use touch handlers
+          const fakeTouch = {
+            touches: [{
+              identifier: e.pointerId,
+              clientX: e.clientX,
+              clientY: e.clientY
+            }],
+            preventDefault: () => e.preventDefault(),
+            stopPropagation: () => e.stopPropagation()
           }
+          handleTouchStart(fakeTouch)
         }
 
         const handlePointerMove = (e) => {
-          if (!touchState.draggedCard || touchState.draggedCard !== card || touchState.pointerId !== e.pointerId) return
+          if (e.pointerType !== 'touch' || !touchState.draggedCard) return
 
-          e.preventDefault()
-          const targetElement = document.elementFromPoint(e.clientX, e.clientY)
-          if (!targetElement) return
-
-          const targetCard = targetElement.closest('.activity-card')
-          if (!targetCard || targetCard === touchState.draggedCard || targetCard.parentElement !== container) return
-
-          if (touchState.lastTarget !== targetCard) {
-            this.reorderCards(container, touchState.draggedCard, targetCard)
-            touchState.lastTarget = targetCard
+          const fakeTouch = {
+            touches: [{
+              identifier: touchState.pointerId,
+              clientX: e.clientX,
+              clientY: e.clientY
+            }],
+            preventDefault: () => e.preventDefault(),
+            stopPropagation: () => e.stopPropagation()
           }
+          handleTouchMove(fakeTouch)
         }
 
         const handlePointerEnd = (e) => {
-          if (!touchState.draggedCard || touchState.draggedCard !== card || touchState.pointerId !== e.pointerId) return
+          if (e.pointerType !== 'touch' || !touchState.draggedCard) return
 
-          e.preventDefault()
-          cleanupTouchDrag()
+          const fakeTouch = {
+            touches: [],
+            preventDefault: () => e.preventDefault()
+          }
+          handleTouchEnd(fakeTouch)
         }
 
         card.addEventListener('pointerdown', handlePointerDown, { passive: false })
-        card.addEventListener('pointermove', handlePointerMove)
-        card.addEventListener('pointerup', handlePointerEnd)
-        card.addEventListener('pointercancel', handlePointerEnd)
-      } else {
-        const handleTouchStart = (e) => {
-          if (!e.touches || e.touches.length === 0) return
-
-          const touch = e.touches[0]
-          touchState.pointerId = touch.identifier
-          touchState.draggedCard = card
-          touchState.lastTarget = null
-          touchState.originalTouchAction = card.style.touchAction || null
-          card.style.touchAction = 'none'
-          card.classList.add('dragging')
-          container.classList.add('dragging')
-          container.querySelectorAll('.activity-card').forEach(c => c.classList.remove('drag-over'))
-
-          e.preventDefault()
-        }
-
-        const handleTouchMove = (e) => {
-          if (!touchState.draggedCard || touchState.draggedCard !== card) return
-
-          const touch = Array.from(e.touches || []).find(t => t.identifier === touchState.pointerId)
-          if (!touch) return
-
-          e.preventDefault()
-          const targetElement = document.elementFromPoint(touch.clientX, touch.clientY)
-          if (!targetElement) return
-
-          const targetCard = targetElement.closest('.activity-card')
-          if (!targetCard || targetCard === touchState.draggedCard || targetCard.parentElement !== container) return
-
-          if (touchState.lastTarget !== targetCard) {
-            this.reorderCards(container, touchState.draggedCard, targetCard)
-            touchState.lastTarget = targetCard
-          }
-        }
-
-        const handleTouchEnd = (e) => {
-          if (!touchState.draggedCard || touchState.draggedCard !== card) return
-
-          const remainingTouch = Array.from(e.touches || []).find(t => t.identifier === touchState.pointerId)
-          if (remainingTouch) return
-
-          e.preventDefault()
-          cleanupTouchDrag()
-        }
-
-        card.addEventListener('touchstart', handleTouchStart, { passive: false })
-        card.addEventListener('touchmove', handleTouchMove, { passive: false })
-        card.addEventListener('touchend', handleTouchEnd)
-        card.addEventListener('touchcancel', handleTouchEnd)
+        card.addEventListener('pointermove', handlePointerMove, { passive: false })
+        card.addEventListener('pointerup', handlePointerEnd, { passive: false })
+        card.addEventListener('pointercancel', handlePointerEnd, { passive: false })
       }
     })
   }
