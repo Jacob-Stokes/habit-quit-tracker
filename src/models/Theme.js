@@ -6,7 +6,7 @@ class Theme {
     this.id = data.id
     this.user_id = data.user_id
     this.name = data.name
-    this.is_default = data.is_default
+    this.is_built_in = data.is_built_in || false
     this.colors = typeof data.colors === 'string' ? JSON.parse(data.colors) : data.colors
     this.created_at = data.created_at
   }
@@ -43,7 +43,7 @@ class Theme {
   // Get all themes for a user plus default themes
   static async findByUserId(userId) {
     const rows = await database.all(
-      'SELECT * FROM themes WHERE user_id = ? OR is_default = 1 ORDER BY is_default DESC, created_at DESC',
+      'SELECT * FROM themes WHERE user_id = ? OR is_built_in = 1 ORDER BY is_built_in DESC, created_at DESC',
       [userId]
     )
 
@@ -93,7 +93,7 @@ class Theme {
       id: this.id,
       user_id: this.user_id,
       name: this.name,
-      is_default: this.is_default,
+      is_built_in: this.is_built_in,
       colors: this.colors,
       created_at: this.created_at
     }
