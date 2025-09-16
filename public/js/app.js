@@ -2921,7 +2921,7 @@ class HabitTracker {
 
   calculateTimeDisplayWithGoal(activity, lastEvent, goalHours, goalName) {
     const baseTimeData = this.calculateTimeDisplay(activity, lastEvent)
-    
+
     // Define milestone goals (in hours) - same as in renderGoalOptions
     const goals = [
       { name: '24 Hours', hours: 24 },
@@ -2935,37 +2935,38 @@ class HabitTracker {
       { name: '1 Year', hours: 8760 },
       { name: '5 Years', hours: 43800 }
     ]
-    
-    let currentGoal = goalName
-    let currentGoalHours = goalHours
-    
-    // Check if current goal is reached and auto-progress to next goal
-    if (baseTimeData.totalHours >= goalHours) {
-      // Find current goal index
-      const currentGoalIndex = goals.findIndex(g => g.name === goalName && g.hours === goalHours)
-      
-      // If we found the current goal and there's a next goal, auto-progress
-      if (currentGoalIndex !== -1 && currentGoalIndex < goals.length - 1) {
-        const nextGoal = goals[currentGoalIndex + 1]
-        
-        // Only auto-progress if we haven't reached the next goal yet
-        if (baseTimeData.totalHours < nextGoal.hours) {
-          currentGoal = nextGoal.name
-          currentGoalHours = nextGoal.hours
-          
-          // Update the activity's selected goal in memory and database
-          activity.selectedGoal = { name: nextGoal.name, hours: nextGoal.hours }
-          
+
+    let currentGoal = goalName || goals[0].name
+    let currentGoalHours = goalHours || goals[0].hours
+
+    // If no goal was set, or if current goal is reached, find appropriate goal
+    if (!goalHours || baseTimeData.totalHours >= goalHours) {
+      // Find the appropriate goal based on current hours
+      for (let i = 0; i < goals.length; i++) {
+        const goal = goals[i]
+        if (baseTimeData.totalHours < goal.hours) {
+          currentGoal = goal.name
+          currentGoalHours = goal.hours
+
+          // Update the activity's selected goal in memory
+          activity.selectedGoal = { name: goal.name, hours: goal.hours }
+
           // Update in database asynchronously (don't wait for it)
-          api.updateActivityGoal(activity.id, nextGoal.name, nextGoal.hours).catch(error => {
+          api.updateActivityGoal(activity.id, goal.name, goal.hours).catch(error => {
             console.error('Error auto-updating goal:', error)
           })
+          break
+        } else if (i === goals.length - 1) {
+          // Exceeded all goals - stay at the highest one
+          currentGoal = goal.name
+          currentGoalHours = goal.hours
+          activity.selectedGoal = { name: goal.name, hours: goal.hours }
         }
       }
     }
-    
+
     const progressPercent = Math.min((baseTimeData.totalHours / currentGoalHours) * 100, 100)
-    
+
     return {
       ...baseTimeData,
       progressPercent,
@@ -3022,7 +3023,7 @@ class HabitTracker {
 
   calculateTimeDisplay(activity, lastEvent) {
     let startDate
-    
+
     if (activity.type === 'quit') {
       if (!lastEvent) {
         // No events logged yet - count from when activity was created
@@ -3048,7 +3049,8 @@ class HabitTracker {
         timeString: 'N/A',
         progressPercent: 0,
         currentGoal: 'N/A',
-        hasProgress: false
+        hasProgress: false,
+        totalHours: 0
       }
     }
 
@@ -3092,15 +3094,21 @@ class HabitTracker {
       { name: '5 Years', hours: 43800 }
     ]
 
-    // Find current goal
-    let currentGoal = goals[goals.length - 1] // Default to highest goal
-    let progressPercent = 100
+    // Find current goal - default to first goal if starting fresh
+    let currentGoal = goals[0] // Default to first goal (24 Hours)
+    let progressPercent = 0
 
-    for (const goal of goals) {
+    // Find the appropriate goal based on current progress
+    for (let i = 0; i < goals.length; i++) {
+      const goal = goals[i]
       if (totalHours < goal.hours) {
         currentGoal = goal
         progressPercent = (totalHours / goal.hours) * 100
         break
+      } else if (i === goals.length - 1) {
+        // Achieved the highest goal
+        currentGoal = goal
+        progressPercent = 100
       }
     }
 
