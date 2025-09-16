@@ -263,7 +263,7 @@ class Activity {
 
   // Convert to JSON (remove sensitive data if needed)
   toJSON() {
-    return {
+    const json = {
       id: this.id,
       user_id: this.user_id,
       name: this.name,
@@ -277,6 +277,18 @@ class Activity {
       abstinence_text: this.abstinence_text,
       use_default_abstinence_text: this.use_default_abstinence_text
     }
+
+    // Include lastEvent if it exists
+    if (this.lastEvent) {
+      json.lastEvent = this.lastEvent
+    }
+
+    // Include statistics if they exist
+    if (this.statistics) {
+      json.statistics = this.statistics
+    }
+
+    return json
   }
 }
 
