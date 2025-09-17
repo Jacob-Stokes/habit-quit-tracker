@@ -192,6 +192,25 @@ body {
     color: #555;
 }
 
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.checkbox-label input {
+    height: 18px;
+    width: 18px;
+}
+
+.input-group .input-hint {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
 .input-group input,
 .input-group select {
     width: 100%;
@@ -676,6 +695,69 @@ body {
 .habit-stats .stat-value {
     font-weight: 600;
     color: var(--text-primary);
+}
+
+.habit-weekly {
+    margin-top: 12px;
+}
+
+.habit-week-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.habit-week-day {
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.habit-week-day:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px var(--shadow);
+}
+
+.habit-week-day:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.habit-week-day.completed {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.habit-week-day.today {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary);
+}
+
+.habit-week-day-label {
+    pointer-events: none;
+}
+
+.habit-week-day-count {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    pointer-events: none;
+    min-height: 0.7rem;
+}
+
+.habit-week-day.completed .habit-week-day-count {
+    color: rgba(255, 255, 255, 0.9);
 }
 
 /* Goal dropdown styles */

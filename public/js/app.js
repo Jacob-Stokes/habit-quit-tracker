@@ -78,9 +78,13 @@ class HabitTracker {
       // Load activities with stats and last event
       const activitiesResponse = await api.getActivities({
         includeStats: true,
-        includeLastEvent: true
+        includeLastEvent: true,
+        includeWeekly: true
       })
-      this.activities = activitiesResponse.activities
+      this.activities = activitiesResponse.activities.map(activity => ({
+        ...activity,
+        allow_multiple_entries_per_day: Boolean(activity.allow_multiple_entries_per_day)
+      }))
 
       // Load today's events
       const eventsResponse = await api.getEvents({
@@ -261,6 +265,8 @@ class HabitTracker {
       const abstinenceGroup = document.getElementById('abstinence-text-group')
       const abstinenceInput = document.getElementById('activity-abstinence-text')
       const editBtn = document.getElementById('edit-abstinence-text')
+      const habitMultiGroup = document.getElementById('habit-multi-group')
+      const habitMultiCheckbox = document.getElementById('habit-allow-multiple')
 
       if (!abstinenceGroup) return
 
@@ -270,8 +276,11 @@ class HabitTracker {
         abstinenceInput.placeholder = this.userDefaultAbstinenceText || 'Abstinence time'
         abstinenceInput.disabled = true
         editBtn.classList.remove('active')
+        if (habitMultiGroup) habitMultiGroup.style.display = 'none'
+        if (habitMultiCheckbox) habitMultiCheckbox.checked = false
       } else {
         abstinenceGroup.style.display = 'none'
+        if (habitMultiGroup) habitMultiGroup.style.display = 'block'
       }
     })
 
@@ -365,13 +374,47 @@ class HabitTracker {
       }
     })
 
-    document.getElementById('add-new-entry-btn')?.addEventListener('click', () => {
+    document.getElementById('add-new-entry-btn')?.addEventListener('click', async () => {
       const modal = document.getElementById('day-entries-modal')
-      if (modal) {
-        const date = modal.dataset.currentDate
-        const activityId = modal.dataset.activityId
+      if (!modal) return
+      const date = modal.dataset.currentDate
+      const activityId = modal.dataset.activityId
+      const activity = this.activities.find(a => a.id === activityId)
+
+      if (!activity) return
+
+      if (activity.type === 'quit') {
         this.hideDayEntriesModal()
         this.showRetroactiveSlipupModal(activityId, date)
+        return
+      }
+
+      // Habit: add entry for this date respecting multi/single
+      try {
+        if (activity.allow_multiple_entries_per_day) {
+          await this.handleHabitDayAdjust(activityId, date, +1, null)
+        } else {
+          await this.handleHabitDayToggle(activityId, date, true, null)
+        }
+      } finally {
+        // After add, refresh calendar and reopen modal for the same date
+        const currentDate = new Date()
+        const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+        const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+
+        const eventsResponse = await api.getEventsInDateRange(
+          activityId,
+          startDate.toISOString().split('T')[0],
+          endDate.toISOString().split('T')[0]
+        )
+
+        const tabContent = document.querySelector('.fullscreen-calendar-view')
+        if (tabContent) {
+          this.updateFullScreenCalendar(tabContent, currentDate, eventsResponse.events || [])
+        }
+
+        const dateString = new Date(date + 'T00:00:00').toDateString()
+        this.showDayEntriesModal(activityId, date, dateString)
       }
     })
 
@@ -1075,8 +1118,6 @@ class HabitTracker {
 
   getActivityCardContent(activity) {
     const lastEvent = activity.lastEvent
-    const stats = activity.statistics || {}
-    
     let timeData
     if (activity.type === 'quit' && activity.selectedGoal) {
       timeData = this.calculateTimeDisplayWithGoal(activity, lastEvent, activity.selectedGoal.hours, activity.selectedGoal.name)
@@ -1095,7 +1136,7 @@ class HabitTracker {
         </div>
       </div>
       
-      ${activity.type === 'quit' ? this.renderQuitDisplay(timeData, activity.color, activity.id) : this.renderHabitDisplay(stats)}
+      ${activity.type === 'quit' ? this.renderQuitDisplay(timeData, activity.color, activity.id) : this.renderHabitDisplay(activity)}
 
       <div class="activity-actions">
         <button class="btn log-btn ${activity.type}" data-activity-id="${activity.id}">
@@ -1325,6 +1366,8 @@ class HabitTracker {
     const abstinenceGroup = document.getElementById('abstinence-text-group')
     const abstinenceInput = document.getElementById('activity-abstinence-text')
     const editBtn = document.getElementById('edit-abstinence-text')
+    const habitMultiGroup = document.getElementById('habit-multi-group')
+    const habitMultiCheckbox = document.getElementById('habit-allow-multiple')
 
     if (activity) {
       title.textContent = 'Edit Activity'
@@ -1333,6 +1376,16 @@ class HabitTracker {
       form.elements.icon.value = activity.icon || ''
       form.elements.color.value = activity.color || '#6366f1'
       form.dataset.activityId = activity.id
+
+      if (activity.type === 'habit') {
+        if (habitMultiGroup) habitMultiGroup.style.display = 'block'
+        if (habitMultiCheckbox) {
+          habitMultiCheckbox.checked = Boolean(activity.allow_multiple_entries_per_day)
+        }
+      } else {
+        if (habitMultiGroup) habitMultiGroup.style.display = 'none'
+        if (habitMultiCheckbox) habitMultiCheckbox.checked = false
+      }
 
       // Show abstinence text field for quits
       if (activity.type === 'quit') {
@@ -1365,11 +1418,17 @@ class HabitTracker {
           abstinenceInput.placeholder = this.userDefaultAbstinenceText || 'Abstinence time'
           abstinenceInput.disabled = true
           editBtn.classList.remove('active')
+          if (habitMultiGroup) habitMultiGroup.style.display = 'none'
+          if (habitMultiCheckbox) habitMultiCheckbox.checked = false
         } else {
           abstinenceGroup.style.display = 'none'
+          if (habitMultiGroup) habitMultiGroup.style.display = 'block'
+          if (habitMultiCheckbox) habitMultiCheckbox.checked = false
         }
       } else {
         abstinenceGroup.style.display = 'none'
+        if (habitMultiGroup) habitMultiGroup.style.display = 'none'
+        if (habitMultiCheckbox) habitMultiCheckbox.checked = false
       }
       delete form.dataset.activityId
     }
@@ -1495,10 +1554,16 @@ class HabitTracker {
     try {
       const formData = new FormData(form)
       const activityData = {
-        name: formData.get('name'),
+        name: (formData.get('name') || '').trim(),
         type: formData.get('type'),
-        icon: formData.get('icon') || null,
+        icon: (formData.get('icon') || '').trim() || null,
         color: formData.get('color')
+      }
+
+      const allowMultiplePerDayValue = formData.get('allowMultiplePerDay')
+      const allowMultiplePerDay = allowMultiplePerDayValue === 'on' || allowMultiplePerDayValue === 'true'
+      if (activityData.type === 'habit') {
+        activityData.allowMultiplePerDay = allowMultiplePerDay
       }
 
       // Include abstinence text for quits
@@ -1540,13 +1605,34 @@ class HabitTracker {
       // Find the activity and update its lastEvent
       const activityIndex = this.activities.findIndex(a => a.id === activityId)
       if (activityIndex !== -1) {
-        this.activities[activityIndex].lastEvent = {
+        const activity = this.activities[activityIndex]
+        activity.lastEvent = {
           timestamp: response.event.timestamp,
           note: response.event.note
         }
+
+        if (activity.type === 'habit') {
+          try {
+            const statsResponse = await api.getActivityStats(activityId)
+            activity.statistics = statsResponse.statistics
+          } catch (statsError) {
+            console.error('Failed to refresh habit statistics:', statsError)
+          }
+
+          const eventDate = response.date
+            ? response.date
+            : response.event?.timestamp
+              ? this.getLocalDateString(new Date(response.event.timestamp))
+              : this.getLocalDateString(new Date())
+
+          this.applyHabitDayStatus(activityId, eventDate, {
+            completed: true,
+            count: typeof response.day_count === 'number' ? response.day_count : undefined
+          })
+        }
       }
       
-      this.showMessage('Event logged successfully!', 'success')
+      this.showMessage(response.message || 'Event logged successfully!', 'success')
       
       // Re-render activities to show updated time
       this.renderActivities()
@@ -1563,6 +1649,124 @@ class HabitTracker {
       console.error('Quick log error:', error)
       this.showMessage(error.message || 'Failed to log event', 'error')
     }
+  }
+
+  async handleHabitDayToggle(activityId, date, shouldComplete, button) {
+    if (button && button.dataset.loading === 'true') {
+      return
+    }
+
+    if (button) {
+      button.dataset.loading = 'true'
+      button.setAttribute('disabled', 'disabled')
+    }
+
+    try {
+      const response = await api.setHabitDayStatus(activityId, date, shouldComplete)
+
+      this.applyHabitDayStatus(activityId, date, response)
+
+      const activity = this.activities.find(a => a.id === activityId)
+      if (activity) {
+        activity.statistics = response.statistics
+      }
+
+      if (this.isToday(date)) {
+        const eventsResponse = await api.getEvents({
+          today: true,
+          includeActivity: true
+        })
+        this.todayEvents = eventsResponse.events
+        this.renderTodayEvents()
+      }
+
+      this.renderActivitiesInTab('habits')
+
+      const message = response.message || (shouldComplete ? 'Marked day as complete' : 'Marked day as incomplete')
+      this.showMessage(message, 'success')
+    } catch (error) {
+      console.error('Habit day toggle error:', error)
+      this.showMessage(error.message || 'Failed to update habit day', 'error')
+    } finally {
+      if (button) {
+        button.removeAttribute('disabled')
+        delete button.dataset.loading
+      }
+    }
+  }
+
+  async handleHabitDayAdjust(activityId, date, delta, button) {
+    if (delta === 0) {
+      return
+    }
+
+    if (button && button.dataset.loading === 'true') {
+      return
+    }
+
+    const currentCount = parseInt((button?.dataset.count) || '0', 10)
+    if (button && delta < 0 && currentCount <= 0) {
+      return
+    }
+
+    if (button) {
+      button.dataset.loading = 'true'
+      button.setAttribute('disabled', 'disabled')
+    }
+
+    try {
+      const response = await api.adjustHabitDayCount(activityId, date, delta)
+
+      this.applyHabitDayStatus(activityId, date, response)
+
+      const activity = this.activities.find(a => a.id === activityId)
+      if (activity) {
+        activity.statistics = response.statistics
+      }
+
+      if (this.isToday(date)) {
+        const eventsResponse = await api.getEvents({
+          today: true,
+          includeActivity: true
+        })
+        this.todayEvents = eventsResponse.events
+        this.renderTodayEvents()
+      }
+
+      this.renderActivitiesInTab('habits')
+
+      const message = response.message || (delta > 0 ? 'Added additional entry' : 'Removed an entry')
+      this.showMessage(message, 'success')
+    } catch (error) {
+      console.error('Habit day adjust error:', error)
+      this.showMessage(error.message || 'Failed to adjust habit day', 'error')
+    } finally {
+      if (button) {
+        button.removeAttribute('disabled')
+        delete button.dataset.loading
+      }
+    }
+  }
+
+  applyHabitDayStatus(activityId, date, statusPayload) {
+    const activity = this.activities.find(a => a.id === activityId)
+    if (!activity || !activity.weekly_log || !Array.isArray(activity.weekly_log.days)) {
+      return
+    }
+
+    const dayEntry = activity.weekly_log.days.find(day => day.date === date)
+    if (!dayEntry) {
+      return
+    }
+
+    const newCount = typeof statusPayload.count === 'number'
+      ? statusPayload.count
+      : statusPayload.completed
+        ? Math.max(typeof dayEntry.count === 'number' ? dayEntry.count : 0, 1)
+        : 0
+
+    dayEntry.count = newCount
+    dayEntry.completed = newCount > 0
   }
 
   async handleDeleteActivity(activityId) {
@@ -1783,6 +1987,36 @@ class HabitTracker {
         e.stopPropagation()
         const activityId = btn.dataset.activityId
         this.handleQuickLog(activityId)
+      })
+    })
+
+    container.querySelectorAll('.habit-week-day').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation()
+        const activityId = btn.dataset.activityId
+        const date = btn.dataset.date
+        const activity = this.activities.find(a => a.id === activityId)
+        if (!activity) return
+
+        if (activity.allow_multiple_entries_per_day) {
+          const decrement = e.metaKey || e.ctrlKey || e.altKey
+          const delta = decrement ? -1 : 1
+          this.handleHabitDayAdjust(activityId, date, delta, btn)
+        } else {
+          const nextState = btn.dataset.completed !== 'true'
+          this.handleHabitDayToggle(activityId, date, nextState, btn)
+        }
+      })
+
+      btn.addEventListener('contextmenu', (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const activityId = btn.dataset.activityId
+        const date = btn.dataset.date
+        const activity = this.activities.find(a => a.id === activityId)
+        if (!activity || !activity.allow_multiple_entries_per_day) return
+
+        this.handleHabitDayAdjust(activityId, date, -1, btn)
       })
     })
 
@@ -2206,6 +2440,9 @@ class HabitTracker {
     const clickableDays = container.querySelectorAll('.clickable-day')
     console.log('🔍 DEBUG: Found', clickableDays.length, 'clickable days')
 
+    const activityId = this.currentCalendarActivity
+    const activity = this.activities.find(a => a.id === activityId)
+
     clickableDays.forEach((day, index) => {
       // Since we replace the HTML in updateFullScreenCalendar, we always need to add listeners
       // to the new elements.
@@ -2216,8 +2453,12 @@ class HabitTracker {
         console.log('🔍 DEBUG: Calendar day clicked:', day.dataset.date, 'by listener', index)
         const date = day.dataset.date
         const dateString = day.dataset.dateString
-        const activityId = this.currentCalendarActivity
-        this.showDayEntriesModal(activityId, date, dateString)
+        const currentActivityId = this.currentCalendarActivity
+        if (activity && activity.type === 'quit') {
+          this.showRetroactiveSlipupModal(currentActivityId, date)
+        } else {
+          this.showDayEntriesModal(currentActivityId, date, dateString)
+        }
       })
     })
   }
@@ -2275,6 +2516,16 @@ class HabitTracker {
     modal.dataset.currentDate = date
     modal.dataset.activityId = activityId
     modal.dataset.dateString = dateString
+
+    // Enable/disable Add New Entry based on habit multi setting
+    const activity = this.activities.find(a => a.id === activityId)
+    const addBtn = document.getElementById('add-new-entry-btn')
+    if (addBtn && activity) {
+      const isMulti = Boolean(activity.allow_multiple_entries_per_day)
+      const hasEntry = (events.length > 0)
+      addBtn.disabled = !isMulti && hasEntry
+      addBtn.textContent = (!isMulti && hasEntry) ? 'Already logged' : 'Add New Entry'
+    }
 
     // Show modal
     modal.style.display = 'flex'
@@ -2740,6 +2991,19 @@ class HabitTracker {
         const dateString = modal.dataset.dateString
         this.showDayEntriesModal(activityId, date, dateString)
       }
+
+      // Refresh statistics for the activity so streaks update live
+      try {
+        const statsResponse = await api.getActivityStats(activityId)
+        const activity = this.activities.find(a => a.id === activityId)
+        if (activity) {
+          activity.statistics = statsResponse.statistics
+        }
+        // Re-render habits tab to reflect updated streaks
+        this.renderActivitiesInTab('habits')
+      } catch (statsErr) {
+        console.error('Failed to refresh stats after deletion:', statsErr)
+      }
     } catch (error) {
       console.error('Error deleting event:', error)
       this.showMessage('Failed to delete entry', 'error')
@@ -2976,8 +3240,6 @@ class HabitTracker {
 
   renderActivityCard(activity) {
     const lastEvent = activity.lastEvent
-    const stats = activity.statistics || {}
-    
     // Calculate time since last event for quits
     let timeData
     if (activity.type === 'quit' && activity.selectedGoal) {
@@ -3008,7 +3270,7 @@ class HabitTracker {
           </div>
         </div>
         
-        ${activity.type === 'quit' ? this.renderQuitDisplay(timeData, activity.color, activity.id, activity.icon, activity.abstinence_text) : this.renderHabitDisplay(stats)}
+        ${activity.type === 'quit' ? this.renderQuitDisplay(timeData, activity.color, activity.id, activity.icon, activity.abstinence_text) : this.renderHabitDisplay(activity)}
 
         ${activity.type === 'habit' ? `
           <div class="habit-actions">
@@ -3197,7 +3459,21 @@ class HabitTracker {
     }).join('')
   }
 
-  renderHabitDisplay(stats) {
+  renderHabitDisplay(activity) {
+    const stats = activity.statistics || {}
+    const weeklyLog = activity.weekly_log
+    const hasWeeklyLog = weeklyLog && Array.isArray(weeklyLog.days) && weeklyLog.days.length > 0
+
+    const weeklyMarkup = hasWeeklyLog
+      ? `
+        <div class="habit-weekly" aria-label="Weekly progress">
+          <div class="habit-week-days">
+            ${weeklyLog.days.map(day => this.renderHabitWeekDay(activity, day)).join('')}
+          </div>
+        </div>
+      `
+      : ''
+
     return `
       <div class="habit-display">
         <div class="habit-stats">
@@ -3214,7 +3490,45 @@ class HabitTracker {
             <span class="stat-value">${stats.totalEvents || 0}</span>
           </div>
         </div>
+        ${weeklyMarkup}
       </div>
+    `
+  }
+
+  renderHabitWeekDay(activity, day) {
+    const label = this.getShortWeekdayLabel(day.date)
+    const isToday = this.isToday(day.date)
+    const classes = ['habit-week-day']
+    if (day.completed) classes.push('completed')
+    if (isToday) classes.push('today')
+
+    const count = typeof day.count === 'number' ? day.count : 0
+    const isMulti = Boolean(activity.allow_multiple_entries_per_day)
+    const statusText = day.completed ? 'completed' : 'not completed'
+    const countText = isMulti && count > 0 ? `x${count}` : ''
+    const ariaLabel = isMulti
+      ? `${label} ${statusText}, ${count} entr${count === 1 ? 'y' : 'ies'}`
+      : `${label} ${statusText}`
+    const titleText = isMulti
+      ? `${label}: tap to add, Alt/⌘/Ctrl-click to remove`
+      : label
+
+    return `
+      <button
+        type="button"
+        class="${classes.join(' ')}"
+        data-activity-id="${activity.id}"
+        data-date="${day.date}"
+        data-completed="${day.completed}"
+        data-count="${count}"
+        data-multi="${isMulti}"
+        aria-pressed="${day.completed}"
+        aria-label="${ariaLabel}"
+        title="${titleText}"
+      >
+        <span class="habit-week-day-label">${label.charAt(0)}</span>
+        <span class="habit-week-day-count">${countText}</span>
+      </button>
     `
   }
 
@@ -3252,6 +3566,25 @@ class HabitTracker {
     if (diffDays === 1) return 'Yesterday'
     if (diffDays < 7) return `${diffDays} days ago`
     return date.toLocaleDateString()
+  }
+
+  getLocalDateString(date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  getShortWeekdayLabel(dateString) {
+    const date = new Date(`${dateString}T00:00:00`)
+    if (Number.isNaN(date.getTime())) {
+      return dateString
+    }
+    return date.toLocaleDateString(undefined, { weekday: 'short' })
+  }
+
+  isToday(dateString) {
+    return this.getLocalDateString(new Date()) === dateString
   }
 
   showMessage(message, type = 'info') {

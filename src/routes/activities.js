@@ -14,6 +14,7 @@ router.get('/', async (req, res) => {
   try {
     const includeStats = req.query.include_stats === 'true'
     const includeLastEvent = req.query.include_last_event === 'true'
+    const includeWeekly = req.query.include_weekly === 'true'
 
     let activities
 
@@ -21,6 +22,48 @@ router.get('/', async (req, res) => {
       activities = await Activity.findByUserIdWithLastEvent(req.userId)
     } else {
       activities = await Activity.findByUserId(req.userId)
+    }
+
+    let weekDates = []
+    let weeklyEventCounts = {}
+    let weekStartDate = null
+    let weekEndDate = null
+
+    if (includeWeekly) {
+      const now = new Date()
+      const startOfWeek = new Date(now)
+      const day = startOfWeek.getDay()
+      const diff = day === 0 ? -6 : 1 - day // Start week on Monday
+      startOfWeek.setHours(0, 0, 0, 0)
+      startOfWeek.setDate(startOfWeek.getDate() + diff)
+
+      weekDates = Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(startOfWeek)
+        date.setDate(startOfWeek.getDate() + index)
+        return date.toISOString().split('T')[0]
+      })
+
+      weekStartDate = weekDates[0]
+      weekEndDate = weekDates[weekDates.length - 1]
+
+      const weeklyRows = await database.all(`
+        SELECT e.activity_id, DATE(e.timestamp) as event_date, COUNT(e.id) as event_count
+        FROM events e
+        JOIN activities a ON a.id = e.activity_id
+        WHERE a.user_id = ?
+          AND a.archived = 0
+          AND a.type = 'habit'
+          AND DATE(e.timestamp) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY e.activity_id, DATE(e.timestamp)
+      `, [req.userId, weekStartDate, weekEndDate])
+
+      weeklyEventCounts = weeklyRows.reduce((acc, row) => {
+        if (!acc[row.activity_id]) {
+          acc[row.activity_id] = {}
+        }
+        acc[row.activity_id][row.event_date] = row.event_count
+        return acc
+      }, {})
     }
 
     // Get user's default abstinence text
@@ -31,6 +74,23 @@ router.get('/', async (req, res) => {
     activities = activities.map(activity => {
       if (activity.type === 'quit' && activity.use_default_abstinence_text) {
         activity.abstinence_text = userDefaultText
+      }
+
+      if (includeWeekly && activity.type === 'habit') {
+        const days = weekDates.map(dateString => {
+          const count = weeklyEventCounts[activity.id]?.[dateString] || 0
+          return {
+            date: dateString,
+            count,
+            completed: count > 0
+          }
+        })
+
+        activity.weeklyLog = {
+          start_date: weekStartDate,
+          end_date: weekEndDate,
+          days
+        }
       }
       return activity
     })
@@ -93,7 +153,7 @@ router.get('/:id', async (req, res) => {
 // Create a new activity
 router.post('/', async (req, res) => {
   try {
-    const { name, type, color, icon, abstinenceText } = req.body
+    const { name, type, color, icon, abstinenceText, allowMultiplePerDay } = req.body
 
     // Validation
     if (!name || !type) {
@@ -126,7 +186,8 @@ router.post('/', async (req, res) => {
       color,
       icon,
       abstinenceText,
-      useDefaultAbstinence
+      useDefaultAbstinence,
+      allowMultiplePerDay: type === 'habit' ? allowMultiplePerDay === true || allowMultiplePerDay === 'true' : false
     })
 
     res.status(201).json({
@@ -162,7 +223,7 @@ router.put('/:id', async (req, res) => {
       })
     }
 
-    const { name, type, color, icon, abstinenceText } = req.body
+    const { name, type, color, icon, abstinenceText, allowMultiplePerDay } = req.body
 
     // Validation
     if (name !== undefined && (name.length < 1 || name.length > 100)) {
@@ -184,6 +245,12 @@ router.put('/:id', async (req, res) => {
       type,
       color,
       icon
+    }
+
+    if (type === 'quit') {
+      updateData.allow_multiple_entries_per_day = 0
+    } else if (allowMultiplePerDay !== undefined) {
+      updateData.allow_multiple_entries_per_day = allowMultiplePerDay ? 1 : 0
     }
 
     // Handle abstinence text update

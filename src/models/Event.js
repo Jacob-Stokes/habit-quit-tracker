@@ -71,6 +71,50 @@ class Event {
     return rows.map(row => new Event(row))
   }
 
+  static async findByActivityIdAndDate(activityId, date) {
+    const rows = await database.all(`
+      SELECT * FROM events
+      WHERE activity_id = ?
+      AND DATE(timestamp) = DATE(?)
+      ORDER BY timestamp DESC
+    `, [activityId, date])
+
+    return rows.map(row => new Event(row))
+  }
+
+  static async countByActivityIdAndDate(activityId, date) {
+    const row = await database.get(`
+      SELECT COUNT(*) as count
+      FROM events
+      WHERE activity_id = ?
+        AND DATE(timestamp) = DATE(?)
+    `, [activityId, date])
+
+    return row?.count || 0
+  }
+
+  static async deleteByIds(ids = []) {
+    if (!ids || ids.length === 0) return 0
+
+    const placeholders = ids.map(() => '?').join(', ')
+    const result = await database.run(
+      `DELETE FROM events WHERE id IN (${placeholders})`,
+      ids
+    )
+
+    return result.changes || 0
+  }
+
+  static async deleteByActivityIdAndDate(activityId, date) {
+    const result = await database.run(`
+      DELETE FROM events
+      WHERE activity_id = ?
+      AND DATE(timestamp) = DATE(?)
+    `, [activityId, date])
+
+    return result.changes || 0
+  }
+
   // Get events for all user's activities
   static async findByUserId(userId, limit = null, offset = 0) {
     let sql = `

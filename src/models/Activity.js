@@ -15,11 +15,20 @@ class Activity {
     this.selected_goal_hours = data.selected_goal_hours
     this.abstinence_text = data.abstinence_text
     this.use_default_abstinence_text = data.use_default_abstinence_text !== 0
+    this.allow_multiple_entries_per_day = data.allow_multiple_entries_per_day === 1 || data.allow_multiple_entries_per_day === true
   }
 
   // Create a new activity
   static async create(userId, activityData) {
-    const { name, type, color = '#6366f1', icon = null, abstinenceText = null, useDefaultAbstinence = true } = activityData
+    const {
+      name,
+      type,
+      color = '#6366f1',
+      icon = null,
+      abstinenceText = null,
+      useDefaultAbstinence = true,
+      allowMultiplePerDay = false
+    } = activityData
 
     // Validation
     if (!name || !type) {
@@ -37,8 +46,21 @@ class Activity {
     const useDefault = type === 'quit' ? (useDefaultAbstinence ? 1 : 0) : 1
 
     await database.run(
-      'INSERT INTO activities (id, user_id, name, type, color, icon, abstinence_text, use_default_abstinence_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [id, userId, name, type, color, icon, textToStore, useDefault]
+      `INSERT INTO activities (
+        id, user_id, name, type, color, icon, abstinence_text,
+        use_default_abstinence_text, allow_multiple_entries_per_day
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)` ,
+      [
+        id,
+        userId,
+        name,
+        type,
+        color,
+        icon,
+        textToStore,
+        useDefault,
+        type === 'habit' && allowMultiplePerDay ? 1 : 0
+      ]
     )
 
     return await Activity.findById(id)
@@ -106,7 +128,7 @@ class Activity {
 
   // Update activity
   async update(data) {
-    const allowedFields = ['name', 'type', 'color', 'icon', 'selected_goal_name', 'selected_goal_hours']
+    const allowedFields = ['name', 'type', 'color', 'icon', 'selected_goal_name', 'selected_goal_hours', 'allow_multiple_entries_per_day']
     const updates = []
     const values = []
 
@@ -126,6 +148,11 @@ class Activity {
       if (data[field] !== undefined) {
         if (field === 'type' && !['habit', 'quit'].includes(data[field])) {
           throw new Error('Type must be either "habit" or "quit"')
+        }
+        if (field === 'allow_multiple_entries_per_day') {
+          updates.push(`${field} = ?`)
+          values.push(data[field] ? 1 : 0)
+          continue
         }
         updates.push(`${field} = ?`)
         values.push(data[field])
@@ -286,6 +313,12 @@ class Activity {
     // Include statistics if they exist
     if (this.statistics) {
       json.statistics = this.statistics
+    }
+
+    json.allow_multiple_entries_per_day = this.allow_multiple_entries_per_day
+
+    if (this.weeklyLog) {
+      json.weekly_log = this.weeklyLog
     }
 
     return json

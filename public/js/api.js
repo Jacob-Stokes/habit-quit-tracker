@@ -69,6 +69,7 @@ class API {
     const params = new URLSearchParams()
     if (options.includeStats) params.append('include_stats', 'true')
     if (options.includeLastEvent) params.append('include_last_event', 'true')
+    if (options.includeWeekly) params.append('include_weekly', 'true')
     
     const query = params.toString()
     return this.request(`/activities${query ? '?' + query : ''}`)
@@ -155,6 +156,20 @@ class API {
       end_date: endDate
     })
     return this.request(`/events/activity/${activityId}/range?${params}`)
+  }
+
+  async setHabitDayStatus(activityId, date, completed) {
+    return this.request(`/events/activity/${activityId}/day-status`, {
+      method: 'POST',
+      body: { date, completed }
+    })
+  }
+
+  async adjustHabitDayCount(activityId, date, delta) {
+    return this.request(`/events/activity/${activityId}/day-status`, {
+      method: 'POST',
+      body: { date, delta }
+    })
   }
 
   // Health check
