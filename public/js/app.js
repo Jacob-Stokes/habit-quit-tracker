@@ -74,6 +74,7 @@ class HabitTracker {
       // Load current user
       const userResponse = await api.getCurrentUser()
       this.currentUser = userResponse.user
+      this.applyCardDensity()
 
       // Load activities with stats and last event
       const activitiesResponse = await api.getActivities({
@@ -615,6 +616,38 @@ class HabitTracker {
       }
     })
 
+    document.querySelectorAll('input[name="card-density"]').forEach(radio => {
+      radio.addEventListener('change', async (e) => {
+        if (!e.target.checked) return
+
+        const selectedDensity = e.target.value
+        if (!['comfy', 'compact'].includes(selectedDensity)) {
+          return
+        }
+
+        if (this.currentUser?.card_density === selectedDensity) {
+          return
+        }
+
+        try {
+          await api.updatePreferences({ cardDensity: selectedDensity })
+          this.currentUser.card_density = selectedDensity
+          this.applyCardDensity()
+          this.renderActivitiesInTab('habits')
+          this.renderActivitiesInTab('quits')
+          this.showMessage(selectedDensity === 'compact' ? 'Switched to compact cards' : 'Switched to comfy cards', 'success')
+        } catch (error) {
+          console.error('Error updating card density:', error)
+          this.showMessage('Failed to update card density', 'error')
+
+          // Revert selection to current setting
+          const currentDensity = this.currentUser?.card_density || 'comfy'
+          const currentRadio = document.querySelector(`input[name="card-density"][value="${currentDensity}"]`)
+          if (currentRadio) currentRadio.checked = true
+        }
+      })
+    })
+
     // Theme selector
     document.getElementById('theme-select')?.addEventListener('change', async (e) => {
       const selectedTheme = e.target.value
@@ -798,44 +831,50 @@ class HabitTracker {
   }
 
   updateTitleSectionVisibility() {
-    if (!this.currentUser) return
-
     const headerContent = document.querySelector('.header-content')
     const headerMenu = document.querySelector('.header-menu')
-    const tabButtons = document.querySelector('.tab-buttons')
+    const viewToggle = document.querySelector('.view-toggle')
+    const headerTabs = document.querySelector('.header-tabs')
 
-    if (this.currentUser.show_title_section === false) {
-      // Hide title section
-      if (headerContent) {
-        const h1 = headerContent.querySelector('h1')
-        if (h1) h1.style.display = 'none'
-      }
+    const showTitle = this.currentUser?.show_title_section !== false
 
-      // Move menu to tab bar
-      if (headerMenu && tabButtons) {
-        headerMenu.style.position = 'absolute'
-        headerMenu.style.right = '20px'
-        headerMenu.style.top = '50%'
-        headerMenu.style.transform = 'translateY(-50%)'
-        tabButtons.style.position = 'relative'
-        tabButtons.appendChild(headerMenu)
+    if (!headerMenu || !headerContent) return
+
+    headerMenu.style.position = ''
+    headerMenu.style.right = ''
+    headerMenu.style.top = ''
+    headerMenu.style.transform = ''
+
+    const dropdown = headerMenu.querySelector('.header-dropdown')
+
+    if (!showTitle) {
+      document.body.classList.add('title-hidden')
+      headerContent.style.display = 'none'
+
+      if (dropdown) dropdown.style.display = 'none'
+
+      const target = viewToggle || headerTabs
+      if (target && headerMenu.parentElement !== target) {
+        headerMenu.classList.add('header-menu-inline')
+        target.appendChild(headerMenu)
       }
     } else {
-      // Show title section
-      if (headerContent) {
-        const h1 = headerContent.querySelector('h1')
-        if (h1) h1.style.display = ''
-      }
+      document.body.classList.remove('title-hidden')
+      headerContent.style.display = ''
 
-      // Move menu back to header
-      if (headerMenu && headerContent) {
-        headerMenu.style.position = ''
-        headerMenu.style.right = ''
-        headerMenu.style.top = ''
-        headerMenu.style.transform = ''
+      if (headerMenu.parentElement !== headerContent) {
+        headerMenu.classList.remove('header-menu-inline')
         headerContent.appendChild(headerMenu)
       }
     }
+  }
+
+  applyCardDensity() {
+    const body = document.body
+    body.classList.remove('card-density-comfy', 'card-density-compact')
+
+    const density = this.currentUser?.card_density || 'comfy'
+    body.classList.add(`card-density-${density}`)
   }
 
   // Theme methods
@@ -969,6 +1008,8 @@ class HabitTracker {
       this.currentUser = null
       this.activities = []
       this.todayEvents = []
+      this.applyCardDensity()
+      document.body.classList.remove('title-hidden')
       this.showAuthForms()
       this.showMessage('Logged out successfully', 'success')
     } catch (error) {
@@ -2826,6 +2867,15 @@ class HabitTracker {
         const titleCheckbox = document.getElementById('show-title-section')
         if (titleCheckbox) {
           titleCheckbox.checked = user.show_title_section !== false
+        }
+
+        const density = user.card_density || 'comfy'
+        document.querySelectorAll('input[name="card-density"]').forEach(radio => {
+          radio.checked = radio.value === density
+        })
+        if (this.currentUser) {
+          this.currentUser.card_density = density
+          this.applyCardDensity()
         }
 
         // Load tab visibility settings

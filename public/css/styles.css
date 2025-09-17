@@ -322,6 +322,16 @@ body {
     position: relative;
 }
 
+.header-menu.header-menu-inline {
+    display: flex;
+    align-items: center;
+    margin-left: 8px;
+}
+
+.header-menu.header-menu-inline .header-menu-trigger {
+    padding: 6px 10px;
+}
+
 .header-menu-trigger {
     background: transparent;
     border: none;
@@ -377,6 +387,41 @@ body {
 
 .header-menu-item:last-child:hover {
     background: #fef2f2;
+}
+
+.radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.radio-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.radio-label input {
+    width: 16px;
+    height: 16px;
+}
+
+.radio-label span {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.radio-label:hover {
+    border-color: var(--primary);
+}
+
+.radio-label input:checked + span {
+    color: var(--primary);
 }
 
 .header-tabs {
@@ -1112,10 +1157,18 @@ body {
     .main-content {
         padding: 12px;
     }
+
+    body.card-density-compact .main-content {
+        padding: 10px;
+    }
     
     /* Tighter grid spacing on mobile */
     .activities-grid {
         gap: 12px;
+    }
+
+    body.card-density-compact .activities-grid {
+        gap: 10px;
     }
 
     .today-summary {
@@ -1127,8 +1180,13 @@ body {
     }
 
     .activity-card {
-        padding: 12px 20px;
-        min-height: 180px;
+        padding: 10px 16px;
+        min-height: 165px;
+    }
+
+    body.card-density-compact .activity-card {
+        padding: 8px 14px;
+        min-height: 150px;
     }
     
     /* More compact mobile card elements */
@@ -1137,7 +1195,7 @@ body {
     }
     
     .activity-name {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         margin-bottom: 2px;
     }
     
@@ -1202,6 +1260,11 @@ body {
     .habit-actions {
         padding: 12px 0 0;
         margin-top: 12px;
+    }
+
+    body.card-density-compact .habit-actions {
+        padding-top: 10px;
+        margin-top: 10px;
     }
     
     .habit-actions .btn {
@@ -1706,6 +1769,74 @@ body {
     margin-top: 16px;
 }
 
+body.title-hidden .header-content {
+    display: none;
+}
+
+body.title-hidden .app-header {
+    padding: 6px 0;
+}
+
+body.title-hidden .header-tabs {
+    padding-top: 2px;
+    align-items: center;
+}
+
+body.title-hidden .view-toggle {
+    background: transparent;
+    border: none;
+    padding: 0;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+body.title-hidden .view-toggle-btn {
+    min-width: 40px;
+}
+
+body.title-hidden .header-menu.header-menu-inline {
+    margin-left: 4px;
+}
+
+body.title-hidden .header-menu.header-menu-inline .header-dropdown {
+    top: calc(100% + 6px);
+    right: 0;
+}
+
+body.card-density-compact .activities-grid {
+    gap: 18px;
+}
+
+body.card-density-compact .activity-card {
+    min-height: 200px;
+    padding: 12px 18px;
+}
+
+body.card-density-compact .main-content {
+    padding: 16px;
+}
+
+body.card-density-compact .habit-display {
+    margin: 12px 0;
+}
+
+body.card-density-compact .habit-stats .stat-item {
+    margin-bottom: 6px;
+}
+
+body.card-density-compact .habit-week-days {
+    gap: 6px;
+}
+
+body.card-density-compact .quit-display-modern {
+    padding: 16px;
+}
+
+body.card-density-compact .habit-actions {
+    padding-top: 12px;
+    margin-top: 12px;
+}
+
 /* View Toggle Styles */
 .view-toggle {
     display: flex;
@@ -1979,6 +2110,11 @@ body {
 
 .add-new-entry-btn:hover {
   opacity: 0.9;
+}
+
+.add-new-entry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .no-entries-message {

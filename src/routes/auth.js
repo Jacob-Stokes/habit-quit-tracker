@@ -161,7 +161,7 @@ router.get('/me', requireAuth, async (req, res) => {
 // Update user preferences
 router.put('/preferences', requireAuth, async (req, res) => {
   try {
-    const { defaultAbstinenceText, showHabitsTab, showQuitsTab, showLogsTab, customTitle, showTitleSection } = req.body
+    const { defaultAbstinenceText, showHabitsTab, showQuitsTab, showLogsTab, customTitle, showTitleSection, cardDensity } = req.body
 
     // Validate that at least one main tab (habits or quits) is visible
     if (showHabitsTab === false && showQuitsTab === false) {
@@ -171,13 +171,24 @@ router.put('/preferences', requireAuth, async (req, res) => {
       })
     }
 
+    if (cardDensity !== undefined) {
+      const allowedDensities = ['comfy', 'compact']
+      if (!allowedDensities.includes(cardDensity)) {
+        return res.status(400).json({
+          error: 'Invalid configuration',
+          message: 'Card density must be either "comfy" or "compact"'
+        })
+      }
+    }
+
     await User.updatePreferences(req.userId, {
       defaultAbstinenceText,
       showHabitsTab,
       showQuitsTab,
       showLogsTab,
       customTitle,
-      showTitleSection
+      showTitleSection,
+      cardDensity
     })
 
     res.json({

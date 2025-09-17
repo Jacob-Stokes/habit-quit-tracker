@@ -14,6 +14,7 @@ class User {
     this.custom_title = data.custom_title || 'Habit Tracker'
     this.show_title_section = data.show_title_section !== 0
     this.selected_theme = data.selected_theme || 'light'
+    this.card_density = data.card_density || 'comfy'
     this.is_admin = data.is_admin === 1 || data.is_admin === true
     this.created_at = data.created_at
   }
@@ -77,6 +78,7 @@ class User {
       show_logs_tab: this.show_logs_tab,
       custom_title: this.custom_title,
       show_title_section: this.show_title_section,
+      card_density: this.card_density,
       selected_theme: this.selected_theme,
       is_admin: this.is_admin,
       created_at: this.created_at
@@ -125,6 +127,13 @@ class User {
     if (preferences.selectedTheme !== undefined) {
       updates.push('selected_theme = ?')
       values.push(preferences.selectedTheme)
+    }
+
+    if (preferences.cardDensity !== undefined) {
+      const allowedDensities = ['comfy', 'compact']
+      const density = allowedDensities.includes(preferences.cardDensity) ? preferences.cardDensity : 'comfy'
+      updates.push('card_density = ?')
+      values.push(density)
     }
 
     if (updates.length === 0) {
