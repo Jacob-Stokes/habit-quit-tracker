@@ -48,7 +48,13 @@ git push origin main || {
 
 echo -e "${GREEN}✅ Code pushed to GitHub${NC}\n"
 
-# Step 3: Deploy to production
+# Step 3: Push to production remote (optional - for direct git deployment)
+echo -e "${YELLOW}📤 Pushing to production remote...${NC}"
+git push production main || {
+    echo -e "${YELLOW}⚠️  Direct push to production failed, continuing with SSH pull method${NC}"
+}
+
+# Step 4: Deploy to production via SSH
 echo -e "${YELLOW}🔧 Deploying to production server...${NC}"
 
 ssh $REMOTE_HOST << 'ENDSSH'
