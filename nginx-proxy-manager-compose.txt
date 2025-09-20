@@ -1,0 +1,32 @@
+version: '3.8'
+services:
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      # Admin interface on port 81 (safe - doesn't conflict)
+      - '81:81'
+      # HTTP/HTTPS on alternate ports for testing (safe - doesn't conflict)
+      - '8080:80'
+      - '8443:443'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    environment:
+      # Optional: Set timezone
+      - TZ=UTC
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:81']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Default login for admin interface:
+# Email: admin@example.com
+# Password: changeme
+#
+# Access admin at: http://46.101.66.88:81
+#
+# To test proxies, configure domains to point to:
+# HTTP: http://46.101.66.88:8080
+# HTTPS: https://46.101.66.88:8443
